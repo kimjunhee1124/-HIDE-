@@ -266,9 +266,7 @@ function playLockerSound() {
 
     osc.start();
     osc.stop(audioCtx.currentTime + 0.15);
-  } catch(e) {
-    console.log("Audio API error:", e);
-  }
+  } catch(e) {}
 }
 
 const TILE_SIZE = 40;
@@ -358,8 +356,15 @@ function generateMap() {
     mapData.push(row);
   }
   
-  mapData[2][2] = 0;
-  
+  // 플레이어 스폰 주변 안전지대
+  mapData[1][1] = 0; mapData[1][2] = 0;
+  mapData[2][1] = 0; mapData[2][2] = 0;
+
+  // 괴물 전용 안전 출발 통로 (절대 벽이 들어설 수 없는 공간)
+  mapData[10][10] = 0; mapData[10][11] = 0; mapData[10][12] = 0;
+  mapData[11][10] = 0; mapData[11][11] = 0; mapData[11][12] = 0;
+  mapData[12][10] = 0; mapData[12][11] = 0; mapData[12][12] = 0;
+
   mapData[3][3] = 2;
   mapData[8][12] = 2;
   mapData[12][8] = 2;
@@ -397,7 +402,8 @@ function renderMap() {
 renderMap();
 
 let px = 100, py = 100;
-let mx = 12 * TILE_SIZE + 20, my = 12 * TILE_SIZE + 20;
+// 괴물 시작 위치: 빈 공간이 확정된 (11, 11) 타일의 중심 좌표
+let mx = 11 * TILE_SIZE + 20, my = 11 * TILE_SIZE + 20;
 let hp = 3, hasKey = false;
 let isHidden = false, isChased = false, isQTEActive = false, gameEnded = false;
 let isPaused = true;
@@ -408,7 +414,7 @@ let targetKey = 'W';
 let hideTimer = MAX_HIDE_TIME;
 let requiredPresses = 5;
 
-let mTargetX = 500, mTargetY = 500;
+let mTargetX = 11 * TILE_SIZE + 20, mTargetY = 11 * TILE_SIZE + 20;
 
 function startGame(type) {
   playLockerSound();
@@ -444,11 +450,23 @@ document.addEventListener('keydown', e => {
 
 document.addEventListener('keyup', e => keysPressed[e.key.toLowerCase()] = false);
 
+// 사방 12px 범위를 검사하여 박스 충돌 판정
 function isSolid(x, y) {
-  const col = Math.floor(x / TILE_SIZE);
-  const row = Math.floor(y / TILE_SIZE);
-  if(row < 0 || row >= MAP_SIZE || col < 0 || col >= MAP_SIZE) return true;
-  return mapData[row][col] === 1; 
+  const r = 12;
+  const points = [
+    {x: x - r, y: y - r},
+    {x: x + r, y: y - r},
+    {x: x - r, y: y + r},
+    {x: x + r, y: y + r}
+  ];
+
+  for(let p of points) {
+    let col = Math.floor(p.x / TILE_SIZE);
+    let row = Math.floor(p.y / TILE_SIZE);
+    if(row < 0 || row >= MAP_SIZE || col < 0 || col >= MAP_SIZE) return true;
+    if(mapData[row][col] === 1) return true;
+  }
+  return false;
 }
 
 function updatePlayer() {
@@ -541,8 +559,8 @@ function handleInteraction() {
 
 function pickMonsterNewTarget() {
   let validTiles = [];
-  for(let r = 2; r < MAP_SIZE - 2; r++) {
-    for(let c = 2; c < MAP_SIZE - 2; c++) {
+  for(let r = 1; r < MAP_SIZE - 1; r++) {
+    for(let c = 1; c < MAP_SIZE - 1; c++) {
       if(mapData[r][c] === 0) {
         validTiles.push({r, c});
       }
@@ -564,43 +582,56 @@ function updateMonster() {
 
   let dist = Math.hypot(px - mx, py - my);
   
+  // 추격 상태
   if(dist < 260 && !isHidden && stealthTimer <= 0) {
     isChased = true;
     document.getElementById('alert').style.display = 'block';
     
-    let speed = 3.1;
+    let speed = 2.9;
     let angle = Math.atan2(py - my, px - mx);
-    let nx = mx + Math.cos(angle) * speed;
-    let ny = my + Math.sin(angle) * speed;
+    let vx = Math.cos(angle) * speed;
+    let vy = Math.sin(angle) * speed;
 
-    let moved = false;
-    if(!isSolid(nx, my)) { mx = nx; moved = true; }
-    if(!isSolid(mx, ny)) { my = ny; moved = true; }
+    let movedX = false, movedY = false;
 
-    if(!moved) {
+    if(!isSolid(mx + vx, my)) {
+      mx += vx;
+      movedX = true;
+    }
+    if(!isSolid(mx, my + vy)) {
+      my += vy;
+      movedY = true;
+    }
+
+    // 완전히 막혔을 때 탈출(우회) 로직
+    if(!movedX && !movedY) {
       if(!isSolid(mx + speed, my)) mx += speed;
       else if(!isSolid(mx - speed, my)) mx -= speed;
+      else if(!isSolid(mx, my + speed)) my += speed;
+      else if(!isSolid(mx, my - speed)) my -= speed;
     }
 
     if(dist < 28) lose("괴물에게 붙잡혔습니다!");
   } 
+  // 배회(순찰) 상태
   else {
     isChased = false;
     document.getElementById('alert').style.display = 'none';
     
     let tDist = Math.hypot(mTargetX - mx, mTargetY - my);
-    if(tDist < 20) {
+    if(tDist < 25) {
       pickMonsterNewTarget();
     } else {
       let speed = 1.8;
       let angle = Math.atan2(mTargetY - my, mTargetX - mx);
-      let nx = mx + Math.cos(angle) * speed;
-      let ny = my + Math.sin(angle) * speed;
+      let vx = Math.cos(angle) * speed;
+      let vy = Math.sin(angle) * speed;
 
       let movedX = false, movedY = false;
-      if(!isSolid(nx, my)) { mx = nx; movedX = true; }
-      if(!isSolid(mx, ny)) { my = ny; movedY = true; }
+      if(!isSolid(mx + vx, my)) { mx += vx; movedX = true; }
+      if(!isSolid(mx, my + vy)) { my += vy; movedY = true; }
 
+      // 배회 도중 벽에 막히면 목표 지점을 새로 갱신
       if(!movedX && !movedY) {
         pickMonsterNewTarget();
       }
