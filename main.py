@@ -459,7 +459,7 @@ function initPreviews() {
 
 // 🏫 튜토리얼 및 본 게임 생성 함수 분리 (튜토리얼은 기존 그대로 유지)
 function generateMap() {
-  mapSize = isMainGame ? 29 : 25; // 적절하고 쾌적한 크기 유지
+  mapSize = isMainGame ? 29 : 25; 
   targetKeys = isMainGame ? 3 : 1;
   
   const mapContainer = document.getElementById('map-container');
@@ -486,14 +486,12 @@ function generateMap() {
         mapData[r][c] = 0;
       }
     }
-    // 장애물 및 교실 구조
     for(let r=6; r<12; r++) {
       for(let c=6; c<12; c++) {
         mapData[r][c] = 1;
       }
     }
     mapData[8][6] = 5; // 나무 문 (벽에 딱 붙음)
-    mapData[8][6] = 5;
     mapData[3][6] = 2; // 캐비닛
     mapData[mapSize-2][mapSize-2] = 4; // 탈출문(START)
     mapData[10][10] = 3; // 열쇠
@@ -507,28 +505,23 @@ function generateMap() {
       }
     }
 
-    // 방 내부 공간 및 벽 테두리에만 위치하는 나무 문(5) 배치
     for(let r = 3; r < mapSize - 3; r += 4) {
       for(let c = 3; c < mapSize - 3; c += 4) {
-        // 작은/큰 교실 구역 파기
         for(let dr = 0; dr < 3; dr++) {
           for(let dc = 0; dc < 3; dc++) {
             mapData[r+dr][c+dc] = 0;
           }
         }
-        // 교실 테두리 벽 중 복도와 맞닿는 곳에 나무 문(5) 정확히 삽입 (돌출 없음)
         if(Math.random() > 0.3) mapData[r][c+1] = 5;
       }
     }
 
-    // 플레이어 시작구역 확보
     for(let r = 1; r <= 3; r++) {
       for(let c = 1; c <= 3; c++) {
         mapData[r][c] = 0;
       }
     }
 
-    // 사물함(2) 배치
     let placedCabs = 0;
     while(placedCabs < 6) {
       let rr = Math.floor(Math.random() * (mapSize - 4)) + 2;
@@ -539,7 +532,6 @@ function generateMap() {
       }
     }
 
-    // 열쇠(3) 3개 랜덤 배치
     let placedKeys = 0;
     while(placedKeys < 3) {
       let kr = Math.floor(Math.random() * (mapSize - 4)) + 2;
@@ -550,7 +542,6 @@ function generateMap() {
       }
     }
 
-    // 우측 하단 최종 EXIT 탈출구
     mapData[mapSize-2][mapSize-2] = 4;
     mapData[mapSize-3][mapSize-2] = 0;
     mapData[mapSize-2][mapSize-3] = 0;
@@ -767,7 +758,7 @@ function handleInteraction() {
 
   if(tileType === 5) {
     playSound('door');
-    mapData[pRow][pCol] = 0; // 한 번 열면 고정 유지
+    mapData[pRow][pCol] = 0; 
     renderMap();
     document.getElementById('mission').textContent = '나무 문을 열었습니다!';
   }
@@ -991,7 +982,7 @@ function win() {
   stopChaseBGM();
   stopAmbientBGM();
   document.getElementById('world').classList.add('hidden');
-  document.getElementById('winScreen').classList.add('hidden');
+  document.getElementById('winScreen').classList.remove('hidden');
   
   if (!isMainGame) {
     document.getElementById('winTitle').textContent = "🎓 튜토리얼 클리어!";
