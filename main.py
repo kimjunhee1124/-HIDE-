@@ -1,6 +1,4 @@
-from pathlib import Path
 
-code = r'''
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -425,8 +423,3 @@ function loop(now){
 """
 
 components.html(GAME_HTML, height=760, scrolling=False)
-'''
-
-path = Path("/mnt/data/main.py")
-path.write_text(code, encoding="utf-8")
-print(f"완성했습니다: {path}")
