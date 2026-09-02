@@ -23,11 +23,11 @@ body{
 
 #map-container{
   position:absolute; top:0; left:0;
-  width:2000px; height:2000px; /* 50x50 타일 * 40px */
+  width:2000px; height:2000px;
   background:#323741;
 }
 
-/* 타일 디자인 (Pixel Art Style) */
+/* 타일 디자인 */
 .tile{position:absolute; width:40px; height:40px; box-sizing:border-box; image-rendering:pixelated;}
 .wall{
   background:#1a1d24; 
@@ -40,7 +40,7 @@ body{
   border-bottom:1px solid #303540;
 }
 
-/* 회색 철제 캐비닛 (Grey Steel Cabinet) */
+/* 회색 철제 캐비닛 */
 .cab{
   background:#5a626e; 
   border:3px solid #1e2229;
@@ -56,7 +56,6 @@ body{
   background:#d0d7e1; box-shadow:0 1px 0 #111;
 }
 
-/* 열쇠 아이템 */
 .key-item{
   background:transparent;
   display:flex; align-items:center; justify-content:center;
@@ -73,7 +72,7 @@ body{
   box-shadow:inset 2px 2px 0 #ad3b3b;
 }
 
-/* 엔티티 및 스프라이트 */
+/* 엔티티 */
 .sprite{
   position:absolute; width:32px; height:42px; z-index:10;
   transform:translate(-50%, -50%); image-rendering:pixelated;
@@ -109,14 +108,23 @@ body{
   display:none; border:2px solid #000; box-shadow:3px 3px 0 #000;
 }
 
+/* 캐비닛 내부 시야 (완전 검은색이 아닌 분위기 있는 시야) */
 #hideUI{
-  position:absolute; z-index:100; inset:0; background:#050608;
+  position:absolute; z-index:100; inset:0;
+  background: radial-gradient(circle, rgba(20, 25, 35, 0.85) 0%, rgba(5, 5, 8, 0.98) 100%);
+  border: 15px solid #1a1d24;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
 }
+#hideUI::before{
+  content:""; position:absolute; inset:0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 4px, rgba(0,0,0,0.3) 4px, rgba(0,0,0,0.3) 8px);
+  pointer-events:none;
+}
+
 #keyDisplay{
-  width:90px; height:90px; border:4px solid #fff; background:#1c2029;
-  display:flex; align-items:center; justify-content:center; font-size:48px; font-weight:bold; margin:20px;
-  box-shadow:5px 5px 0 #000;
+  width:90px; height:90px; border:4px solid #e74c3c; background:#161920;
+  display:flex; align-items:center; justify-content:center; font-size:48px; font-weight:bold; margin:15px;
+  box-shadow:0 0 15px rgba(231, 76, 60, 0.4); color:#fff;
 }
 
 #gameover, #winScreen{background:#0a0505; flex-direction:column;}
@@ -135,7 +143,7 @@ body{
   <!-- 타이틀 화면 -->
   <div id="title" class="screen">
     <div class="title">👻 HIDE : PIXEL SCHOOL</div>
-    <div class="sub">어두운 학교 안, 괴물을 피해 열쇠를 찾아 탈출하라!</div>
+    <div class="sub">괴물이 당신보다 빠릅니다! 캐비닛에 숨어 따돌리세요!</div>
     <div class="selects">
       <div class="pick" onclick="startGame('male')">
         <div id="mPrev"></div><b>남학생</b>
@@ -161,15 +169,16 @@ body{
       <div class="panel">❤️ HP: <span id="hp">3</span> | 🔑 열쇠: <span id="keyCount">0</span>/1</div>
       <div class="panel">목표: <span id="mission">열쇠를 찾고 출구로 탈출하세요!</span></div>
     </div>
-    <div id="alert">! 경고: 괴물이 추격 중 !</div>
+    <div id="alert">! 경고: 괴물이 빠른 속도로 추격 중 !</div>
   </div>
 
   <!-- 숨기 UI -->
   <div id="hideUI" class="hidden">
-    <h2 style="color:#bdc3c7;">철제 캐비닛 안...</h2>
-    <p style="color:#7f8c8d;">화면에 나타나는 키를 신속하게 입력해 숨소리를 죽이세요!</p>
+    <h2 id="hideTitle" style="color:#e74c3c; margin:0 0 10px 0;">👀 괴물이 캐비닛 앞을 기웃거립니다!</h2>
+    <p id="hideSub" style="color:#bdc3c7; margin:0;">숨소리를 죽이세요! 지정된 키를 입력하여 버티세요!</p>
     <div id="keyDisplay">W</div>
-    <div id="timer" style="font-size:22px; color:#e74c3c;">8.0s</div>
+    <div style="font-size:16px; color:#aaa; margin-bottom:5px;">성공까지 남은 횟수: <b id="reqCount" style="color:#fff;">5</b>회</div>
+    <div id="timer" style="font-size:22px; color:#e74c3c;">제한시간: 6.0s</div>
   </div>
 
   <!-- 게임 오버 / 클리어 -->
@@ -190,26 +199,20 @@ body{
 
 <script>
 const TILE_SIZE = 40;
-const MAP_SIZE = 50; // 50x50 = 총 2,500칸
+const MAP_SIZE = 50;
 
-// 귀여운 픽셀 도트 SVG 그래픽
 const maleSVG = `
 <svg viewBox="0 0 16 20" xmlns="http://www.w3.org/2000/svg">
-  <!-- 머리카락 -->
   <rect x="4" y="1" width="8" height="2" fill="#2c3e50"/>
   <rect x="3" y="2" width="10" height="4" fill="#2c3e50"/>
-  <!-- 얼굴 -->
   <rect x="4" y="5" width="8" height="5" fill="#f3d2b3"/>
-  <!-- 눈 -->
   <rect x="5" y="7" width="2" height="2" fill="#111"/>
   <rect x="9" y="7" width="2" height="2" fill="#111"/>
   <rect x="6" y="7" width="1" height="1" fill="#fff"/>
   <rect x="10" y="7" width="1" height="1" fill="#fff"/>
-  <!-- 교복 상의 -->
   <rect x="3" y="10" width="10" height="5" fill="#2980b9"/>
   <rect x="7" y="10" width="2" height="3" fill="#fff"/>
-  <rect x="7" y="12" width="2" height="2" fill="#c0392b"/> <!-- 넥타이 -->
-  <!-- 바지 및 신발 -->
+  <rect x="7" y="12" width="2" height="2" fill="#c0392b"/>
   <rect x="4" y="15" width="3" height="4" fill="#34495e"/>
   <rect x="9" y="15" width="3" height="4" fill="#34495e"/>
   <rect x="3" y="18" width="4" height="2" fill="#111"/>
@@ -218,23 +221,18 @@ const maleSVG = `
 
 const femaleSVG = `
 <svg viewBox="0 0 16 20" xmlns="http://www.w3.org/2000/svg">
-  <!-- 머리카락 -->
   <rect x="3" y="1" width="10" height="3" fill="#5d4037"/>
   <rect x="2" y="3" width="12" height="7" fill="#5d4037"/>
-  <!-- 얼굴 -->
   <rect x="4" y="5" width="8" height="5" fill="#f3d2b3"/>
-  <!-- 눈 & 볼터치 -->
   <rect x="5" y="7" width="2" height="2" fill="#111"/>
   <rect x="9" y="7" width="2" height="2" fill="#111"/>
   <rect x="6" y="7" width="1" height="1" fill="#fff"/>
   <rect x="10" y="7" width="1" height="1" fill="#fff"/>
   <rect x="4" y="8" width="1" height="1" fill="#e84393"/>
   <rect x="11" y="8" width="1" height="1" fill="#e84393"/>
-  <!-- 교복 상의 및 치마 -->
   <rect x="3" y="10" width="10" height="4" fill="#2980b9"/>
   <rect x="7" y="10" width="2" height="2" fill="#fff"/>
-  <rect x="3" y="14" width="10" height="3" fill="#c0392b"/> <!-- 세일러 치마 -->
-  <!-- 다리 및 신발 -->
+  <rect x="3" y="14" width="10" height="3" fill="#c0392b"/>
   <rect x="5" y="17" width="2" height="2" fill="#f3d2b3"/>
   <rect x="9" y="17" width="2" height="2" fill="#f3d2b3"/>
   <rect x="4" y="18" width="3" height="2" fill="#111"/>
@@ -243,19 +241,15 @@ const femaleSVG = `
 
 const monsterSVG = `
 <svg viewBox="0 0 16 20" xmlns="http://www.w3.org/2000/svg">
-  <!-- 몸체 -->
   <rect x="3" y="2" width="10" height="15" fill="#1e272c"/>
   <rect x="2" y="5" width="12" height="10" fill="#2c3e50"/>
-  <!-- 붉은 눈 -->
   <rect x="4" y="6" width="3" height="3" fill="#e74c3c"/>
   <rect x="9" y="6" width="3" height="3" fill="#e74c3c"/>
   <rect x="5" y="7" width="1" height="1" fill="#fff"/>
   <rect x="10" y="7" width="1" height="1" fill="#fff"/>
-  <!-- 입 -->
   <rect x="5" y="11" width="6" height="2" fill="#000"/>
   <rect x="6" y="11" width="1" height="1" fill="#fff"/>
   <rect x="9" y="11" width="1" height="1" fill="#fff"/>
-  <!-- 그림자 다리 -->
   <rect x="3" y="17" width="3" height="3" fill="#111"/>
   <rect x="10" y="17" width="3" height="3" fill="#111"/>
 </svg>`;
@@ -268,16 +262,15 @@ const keySVG = `
 document.getElementById('mPrev').innerHTML = `<div class="sprite" style="position:relative">${maleSVG}</div>`;
 document.getElementById('fPrev').innerHTML = `<div class="sprite" style="position:relative">${femaleSVG}</div>`;
 
-// 맵 데이터 생성 (0: 바닥, 1: 벽, 2: 회색 철제 캐비닛, 3: 열쇠, 4: 출구)
 let mapData = [];
 function generateMap() {
   for(let r=0; r<MAP_SIZE; r++) {
     let row = [];
     for(let c=0; c<MAP_SIZE; c++) {
       if(r===0 || r===MAP_SIZE-1 || c===0 || c===MAP_SIZE-1) {
-        row.push(1); // 외곽 벽
+        row.push(1);
       } else if(r % 5 === 0 && c % 5 === 0 && Math.random() > 0.2) {
-        row.push(1); // 내벽
+        row.push(1);
       } else {
         row.push(0);
       }
@@ -285,10 +278,8 @@ function generateMap() {
     mapData.push(row);
   }
   
-  // 특수 위치 지정 및 철제 캐비닛 수동 배치
-  mapData[2][2] = 0; // 플레이어 시작점
+  mapData[2][2] = 0;
   
-  // 회색 철제 캐비닛 배치 (2번)
   mapData[4][4] = 2;
   mapData[12][8] = 2;
   mapData[22][18] = 2;
@@ -296,12 +287,11 @@ function generateMap() {
   mapData[42][38] = 2;
   mapData[18][42] = 2;
 
-  mapData[44][44] = 3; // 열쇠 위치
-  mapData[48][48] = 4; // 출구
+  mapData[44][44] = 3;
+  mapData[48][48] = 4;
 }
 generateMap();
 
-// 맵 렌더링
 function renderMap() {
   const container = document.getElementById('tiles');
   let html = '';
@@ -312,7 +302,7 @@ function renderMap() {
       let content = '';
 
       if(type === 1) tileClass = 'wall';
-      else if(type === 2) tileClass = 'cab'; // 회색 철제 캐비닛
+      else if(type === 2) tileClass = 'cab';
       else if(type === 3) { tileClass = 'key-item'; content = keySVG; }
       else if(type === 4) { tileClass = 'door'; content = 'EXIT'; }
 
@@ -323,13 +313,16 @@ function renderMap() {
 }
 renderMap();
 
-// 상태 변수
 let px = 100, py = 100;
 let mx = 800, my = 800;
 let hp = 3, hasKey = false;
 let isHidden = false, gameEnded = false;
 let keysPressed = {};
-let targetKey = 'W', hideTimer = 8.0;
+
+// QTE 은신 미니게임 관련 상태 변수
+let targetKey = 'W';
+let hideTimer = 6.0;
+let requiredPresses = 5;
 
 function startGame(type) {
   document.getElementById('title').classList.add('hidden');
@@ -347,7 +340,6 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => keysPressed[e.key.toLowerCase()] = false);
 
-// 이동 충돌 판단 (벽만 통과 불가)
 function isSolid(x, y) {
   const col = Math.floor(x / TILE_SIZE);
   const row = Math.floor(y / TILE_SIZE);
@@ -355,9 +347,8 @@ function isSolid(x, y) {
   return mapData[row][col] === 1; 
 }
 
-// 플레이어 이동 로직
 function updatePlayer() {
-  let speed = 3.2;
+  let speed = 3.2; // 플레이어 이동 속도
   let dx = 0, dy = 0;
   if(keysPressed['w'] || keysPressed['arrowup']) dy -= 1;
   if(keysPressed['s'] || keysPressed['arrowdown']) dy += 1;
@@ -372,13 +363,12 @@ function updatePlayer() {
   if(!isSolid(nx, py)) px = nx;
   if(!isSolid(px, ny)) py = ny;
 
-  // 아이템/상호작용 체크
   const pCol = Math.floor(px / TILE_SIZE);
   const pRow = Math.floor(py / TILE_SIZE);
 
   if(mapData[pRow][pCol] === 3) {
     hasKey = true;
-    mapData[pRow][pCol] = 0; // 열쇠 습득
+    mapData[pRow][pCol] = 0;
     renderMap();
     document.getElementById('keyCount').textContent = '1';
     document.getElementById('mission').textContent = '열쇠를 얻었습니다! (48,48) 출구로 이동하세요!';
@@ -390,12 +380,11 @@ function updatePlayer() {
   }
 }
 
-// 괴물 AI
 function updateMonster() {
   let dist = Math.hypot(px - mx, py - my);
-  if(dist < 380 && !isHidden) {
+  if(dist < 450 && !isHidden) {
     document.getElementById('alert').style.display = 'block';
-    let speed = 2.1;
+    let speed = 3.6; // 괴물 속도 (플레이어보다 빠름)
     let angle = Math.atan2(py - my, px - mx);
     let nx = mx + Math.cos(angle) * speed;
     let ny = my + Math.sin(angle) * speed;
@@ -408,7 +397,6 @@ function updateMonster() {
   }
 }
 
-// 카메라 이동
 function updateCamera() {
   const container = document.getElementById('map-container');
   let camX = 500 - px;
@@ -428,15 +416,29 @@ function draw() {
   document.getElementById('mShadow').style.top = (my + 16) + 'px';
 }
 
-// 회색 철제 캐비닛 은신
+// 캐비닛 은신 판정
 function checkCabinet() {
   const pCol = Math.floor(px / TILE_SIZE);
   const pRow = Math.floor(py / TILE_SIZE);
   if(mapData[pRow][pCol] === 2 && !isHidden) {
+    let monsterDist = Math.hypot(px - mx, py - my);
+    
+    // 먼 거리에서 숨었을 때: 괴물이 놓침
+    if(monsterDist > 250) {
+      mx = Math.max(100, mx - 400); // 괴물을 다른 곳으로 멀리 이동
+      my = Math.max(100, my - 400);
+      document.getElementById('mission').textContent = '괴물이 당신을 놓치고 지나갔습니다.';
+      return;
+    }
+
+    // 쫓기는 중에 숨었을 때: 미니게임 시작
     isHidden = true;
     document.getElementById('world').classList.add('hidden');
     document.getElementById('hideUI').classList.remove('hidden');
-    hideTimer = 8.0;
+    
+    hideTimer = 6.0;
+    requiredPresses = 5;
+    document.getElementById('reqCount').textContent = requiredPresses;
     nextHideKey();
   }
 }
@@ -449,7 +451,14 @@ function nextHideKey() {
 
 function handleHideInput(k) {
   if(k === targetKey) {
-    hideTimer = Math.min(8.0, hideTimer + 0.4);
+    requiredPresses--;
+    document.getElementById('reqCount').textContent = requiredPresses;
+    
+    // 5번 모두 입력 성공 시 탈출
+    if(requiredPresses <= 0) {
+      exitCabinetSuccess();
+      return;
+    }
     nextHideKey();
   } else {
     hp--;
@@ -460,13 +469,20 @@ function handleHideInput(k) {
 
 function updateHideLogic(dt) {
   hideTimer -= dt;
-  document.getElementById('timer').textContent = hideTimer.toFixed(1) + 's';
+  document.getElementById('timer').textContent = '제한시간: ' + Math.max(0, hideTimer).toFixed(1) + 's';
+  
   if(hideTimer <= 0) {
-    isHidden = false;
-    document.getElementById('hideUI').classList.add('hidden');
-    document.getElementById('world').classList.remove('hidden');
-    mx = Math.max(100, mx - 300); // 괴물이 멀어짐
+    lose("버티지 못하고 괴물에게 캐비닛이 열렸습니다!");
   }
+}
+
+function exitCabinetSuccess() {
+  isHidden = false;
+  document.getElementById('hideUI').classList.add('hidden');
+  document.getElementById('world').classList.remove('hidden');
+  mx = Math.max(100, mx - 500); // 괴물이 단념하고 멀어짐
+  my = Math.max(100, my - 500);
+  document.getElementById('mission').textContent = '괴물이 포기하고 떠났습니다! 안전할 때 이동하세요.';
 }
 
 function lose(reason) {
