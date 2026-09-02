@@ -27,13 +27,11 @@ body{
 }
 
 .tile{position:absolute; width:40px; height:40px; box-sizing:border-box; image-rendering:pixelated;}
-/* 튜토리얼 어두운 바닥 */
 .floor-tut{
   background: #3a3f4b;
   border-right:1px solid #303540;
   border-bottom:1px solid #303540;
 }
-/* 본 게임 하얀색 타일 바닥 */
 .floor-main{
   background: #e2e8f0;
   border-right:1px solid #cbd5e1;
@@ -289,7 +287,6 @@ function playLockerSound() {
   } catch(e) {}
 }
 
-// 1. 잔잔하고 고요한 기본 Ambient BGM
 function startAmbientBGM() {
   if (ambientBgmInterval || chaseBgmInterval) return;
   initAudio();
@@ -302,14 +299,13 @@ function startAmbientBGM() {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
 
-      // 차분하고 몽환적인 음계 배열 (공포스러운 분위기의 고요함)
-      const ambientChords = [130.81, 164.81, 196.00, 220.00]; // C3, E3, G3, A3
+      const ambientChords = [130.81, 164.81, 196.00, 220.00];
       osc.type = 'sine';
       osc.frequency.setValueAtTime(ambientChords[ambientStep % ambientChords.length], now);
 
       gain.gain.setValueAtTime(0.001, now);
-      gain.gain.linearRampToValueAtTime(0.06, now + 1.0); // 부드럽게 페이드인
-      gain.gain.linearRampToValueAtTime(0.001, now + 3.5); // 부드럽게 페이드아웃
+      gain.gain.linearRampToValueAtTime(0.06, now + 1.0);
+      gain.gain.linearRampToValueAtTime(0.001, now + 3.5);
 
       osc.connect(gain);
       gain.connect(audioCtx.destination);
@@ -319,7 +315,7 @@ function startAmbientBGM() {
 
       ambientStep++;
     } catch(e) {}
-  }, 4000); // 4초 간격의 느리고 잔잔한 템포
+  }, 4000);
 }
 
 function stopAmbientBGM() {
@@ -329,10 +325,9 @@ function stopAmbientBGM() {
   }
 }
 
-// 2. 긴박한 추격 BGM
 function startChaseBGM() {
   if (chaseBgmInterval) return;
-  stopAmbientBGM(); // 추격 시작 시 기본 BGM 즉시 중단
+  stopAmbientBGM();
   initAudio();
   
   bgmStep = 0;
@@ -619,7 +614,7 @@ function restartGame() {
   resetGameState();
   pickMonsterNewTarget();
   isPaused = false;
-  startAmbientBGM(); // 부활 시 잔잔한 기본 BGM 재시작
+  startAmbientBGM();
   
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
@@ -629,9 +624,10 @@ function closeTutorial() {
   playLockerSound();
   document.getElementById('tutorialNotice').classList.add('hidden');
   isPaused = false;
-  startAmbientBGM(); // 튜토리얼 닫히고 게임 시작 시 잔잔한 기본 BGM 시작
+  startAmbientBGM();
 }
 
+// 🛡️ 버그 방지: 키 입력 및 포커스 이탈 제어 리스너
 document.addEventListener('keydown', e => {
   if(isPaused || gameEnded) return;
 
@@ -648,7 +644,19 @@ document.addEventListener('keydown', e => {
   }
 });
 
-document.addEventListener('keyup', e => keysPressed[e.key.toLowerCase()] = false);
+document.addEventListener('keyup', e => {
+  keysPressed[e.key.toLowerCase()] = false;
+});
+
+// 브라우저 창 전환, 탭 이동, 또는 마우스 우클릭 등으로 포커스가 나갔을 때 키가 고착되는 현상 방지
+window.addEventListener('blur', () => {
+  keysPressed = {};
+});
+
+// 우클릭 메뉴로 인한 입력 꼬임 방지
+document.addEventListener('contextmenu', e => {
+  e.preventDefault();
+});
 
 function isSolid(x, y) {
   const r = 12;
@@ -745,7 +753,7 @@ function handleInteraction() {
       isHidden = true;
       isQTEActive = false;
       stopChaseBGM();
-      stopAmbientBGM(); // 안전한 캐비닛 속에서는 완전한 정적 유지
+      stopAmbientBGM();
       document.getElementById('hideUI').classList.remove('hidden');
       document.getElementById('qteBox').classList.add('hidden');
       document.getElementById('safeBox').classList.remove('hidden');
@@ -797,7 +805,7 @@ function updateMonster() {
   if(dist < detectRange && !isHidden && stealthTimer <= 0) {
     isChased = true;
     document.getElementById('alert').style.display = 'block';
-    startChaseBGM(); // 추격 시작 시 긴급 BGM으로 전환
+    startChaseBGM();
     
     let speed = 2.9; 
     let angle = Math.atan2(py - my, px - mx);
@@ -829,7 +837,7 @@ function updateMonster() {
     document.getElementById('alert').style.display = 'none';
     if(!isHidden) {
       stopChaseBGM();
-      startAmbientBGM(); // 괴물이 시야에서 사라지면 잔잔한 기본 BGM 복귀
+      startAmbientBGM();
     }
     
     let tDist = Math.hypot(mTargetX - mx, mTargetY - my);
@@ -909,7 +917,7 @@ function exitCabinetQTESuccess() {
   isQTEActive = false;
   isChased = false;
   stopChaseBGM();
-  startAmbientBGM(); // QTE 성공 후 다시 잔잔한 BGM 재생
+  startAmbientBGM();
   
   pickMonsterNewTarget();
   mx = mTargetX; 
