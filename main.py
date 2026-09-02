@@ -23,28 +23,25 @@ body{
 
 #map-container{
   position:absolute; top:0; left:0;
-  background:#1a1d24;
+  background:#323741;
 }
 
 .tile{position:absolute; width:40px; height:40px; box-sizing:border-box; image-rendering:pixelated;}
-
-/* 튜토리얼 바닥 (기존 유지) */
 .floor-tut{
   background: #3a3f4b;
   border-right:1px solid #303540;
   border-bottom:1px solid #303540;
 }
-/* 본 게임 바닥 (원래 예전 스타일 복구) */
 .floor-main{
-  background: #2b303b;
-  border-right:1px solid #21252d;
-  border-bottom:1px solid #21252d;
+  background: #e2e8f0;
+  border-right:1px solid #cbd5e1;
+  border-bottom:1px solid #cbd5e1;
 }
 
 .wall{
-  background:#111318; 
-  border:3px solid #08090c; 
-  box-shadow:inset 2px 2px 0 #1f242d, inset -2px -2px 0 #0c0d10;
+  background:#1a1d24; 
+  border:3px solid #0d0e12; 
+  box-shadow:inset 2px 2px 0 #2a2f3a, inset -2px -2px 0 #121419;
 }
 
 .cab{
@@ -60,15 +57,6 @@ body{
 .cab::after{
   content:""; position:absolute; right:6px; top:20px; width:4px; height:6px;
   background:#d0d7e1; box-shadow:0 1px 0 #111;
-}
-
-/* 벽 테두리에 딱 붙는 나무 문 */
-.wood-door{
-  background:#8d5524;
-  border:3px solid #4a2c11;
-  box-shadow:inset 3px 3px 0 #b06d33, inset -3px -3px 0 #5c3716;
-  text-align:center; line-height:34px; font-weight:bold; color:#f3c68f; font-size:9px;
-  cursor:pointer;
 }
 
 .key-item{
@@ -176,12 +164,12 @@ body{
 
   <div id="title" class="screen">
     <div class="title">👻 HIDE : PIXEL SCHOOL</div>
-    <div class="sub">완벽하게 복구된 튜토리얼과 정통 미로 본 게임!</div>
+    <div class="sub">괴물을 피해 열쇠를 모아 탈출하세요!</div>
     
     <div class="controls-box">
       <div style="font-size:16px; font-weight:bold; margin-bottom:6px; color:#fff;">🎮 조작 안내</div>
       <div>이동: <b>W, A, S, D</b> 또는 <b>방향키</b></div>
-      <div>상호작용 (문 열기 / 은신 / 열쇠 획득): <b style="color:#f1c40f;">[ E ] Key</b></div>
+      <div>상호작용 (은신 / 열쇠 획득 / 이동): <b style="color:#f1c40f;">[ E ] Key</b></div>
     </div>
 
     <div class="selects">
@@ -206,11 +194,11 @@ body{
     <div id="tutorialNotice">
       <div class="notice-box">
         <h2 id="stageTitle">📢 [튜토리얼 스테이지]</h2>
-        <p style="color:#f1c40f; font-weight:bold;" id="stageDesc">나무 문을 열고 들어가 숨겨진 열쇠를 찾으세요!</p>
+        <p style="color:#f1c40f; font-weight:bold;" id="stageDesc">본 게임에 진입하기 전, 기본 조작과 은신 방법을 익히세요!</p>
         <ul id="stageGoals">
-          <li><b>목표:</b> 교실 안을 탐색해 나무 문을 열고 열쇠(🔑 1개)를 찾으세요.</li>
+          <li><b>목표:</b> 랜덤 위치의 열쇠(🔑 1개)를 찾으세요.</li>
           <li><b>은신 연습:</b> 괴물이 다가오면 캐비닛에 숨어 QTE 미션을 수행하세요.</li>
-          <li><b>입장:</b> 열쇠로 탈출 문을 열어 본 게임으로 향하세요.</li>
+          <li><b>입장:</b> 열쇠로 우측 하단의 START 문을 열어 본 게임으로 향하세요.</li>
         </ul>
         <button class="bigbtn" style="background:#2980b9; border-color:#3498db;" onclick="closeTutorial()">이해했습니다 (시작)</button>
       </div>
@@ -218,7 +206,7 @@ body{
 
     <div id="hud">
       <div class="panel">🔑 열쇠: <span id="keyCount">0</span>/<span id="targetKeyCount">1</span></div>
-      <div class="panel">상태: <span id="mission" style="color:#f1c40f;">[튜토리얼] 교실의 나무 문을 열어보세요!</span></div>
+      <div class="panel">상태: <span id="mission" style="color:#f1c40f;">[튜토리얼] 열쇠를 찾으세요!</span></div>
       <div class="panel" style="color:#aaa;">조작: WASD(이동) / E(상호작용)</div>
     </div>
     <div id="alert">! 경고: 괴물이 추격 중 !</div>
@@ -230,7 +218,7 @@ body{
       <p id="hideSub" style="color:#bdc3c7; margin:0 0 10px 0; text-shadow:1px 1px #000;">게이지가 다 떨어지기 전에 표시되는 키를 누르세요!</p>
       
       <div style="font-size:18px; color:#e74c3c; font-weight:bold; margin-bottom:8px;">
-        ❤️ 숨참기 기회: <span id="qteHp" style="color:#fff; font-size:22px;">3</span> / 3
+        ❤️ 숨참기 기회 (실패 실수): <span id="qteHp" style="color:#fff; font-size:22px;">3</span> / 3
       </div>
 
       <div id="gaugeContainer">
@@ -255,7 +243,7 @@ body{
 
   <div id="winScreen" class="screen hidden">
     <h1 id="winTitle" style="font-size:40px; color:#27ae60; text-shadow:3px 3px #000;">🎓 튜토리얼 클리어!</h1>
-    <p id="winDesc" style="color:#a6a6a6;">미로 탐색법을 익혔습니다. 이제 본 게임으로 입장합니다...</p>
+    <p id="winDesc" style="color:#a6a6a6;">기본 생존 수칙을 모두 익혔습니다. 이제 본 게임으로 입장합니다...</p>
     <button id="winBtn" class="bigbtn" style="background:#27ae60; border-color:#2ecc71;" onclick="startMainGame()">본 게임 시작하기</button>
   </div>
 
@@ -278,30 +266,24 @@ function initAudio() {
   }
 }
 
-function playSound(type) {
+function playLockerSound() {
   try {
     initAudio();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
 
-    if(type === 'door') {
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.2);
-      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-    } else {
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-    }
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.15);
+
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
 
     osc.connect(gain);
     gain.connect(audioCtx.destination);
+
     osc.start();
-    osc.stop(audioCtx.currentTime + 0.2);
+    osc.stop(audioCtx.currentTime + 0.15);
   } catch(e) {}
 }
 
@@ -311,6 +293,7 @@ function startAmbientBGM() {
 
   ambientBgmInterval = setInterval(() => {
     if (!audioCtx || audioCtx.state !== 'running') return;
+    
     try {
       const now = audioCtx.currentTime;
       const osc = audioCtx.createOscillator();
@@ -326,8 +309,10 @@ function startAmbientBGM() {
 
       osc.connect(gain);
       gain.connect(audioCtx.destination);
+
       osc.start(now);
       osc.stop(now + 3.6);
+
       ambientStep++;
     } catch(e) {}
   }, 4000);
@@ -348,6 +333,7 @@ function startChaseBGM() {
   bgmStep = 0;
   chaseBgmInterval = setInterval(() => {
     if (!audioCtx || audioCtx.state !== 'running') return;
+    
     try {
       const now = audioCtx.currentTime;
       const osc = audioCtx.createOscillator();
@@ -362,8 +348,23 @@ function startChaseBGM() {
       
       osc.connect(gain);
       gain.connect(audioCtx.destination);
+      
       osc.start(now);
       osc.stop(now + 0.25);
+      
+      if (bgmStep % 2 === 1) {
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(330, now + 0.1);
+        gain2.gain.setValueAtTime(0.1, now + 0.1);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start(now + 0.1);
+        osc2.stop(now + 0.2);
+      }
+      
       bgmStep++;
     } catch(e) {}
   }, 300);
@@ -387,6 +388,8 @@ const maleSVG = `
   <rect x="4" y="5" width="8" height="5" fill="#f3d2b3"/>
   <rect x="5" y="7" width="2" height="2" fill="#111"/>
   <rect x="9" y="7" width="2" height="2" fill="#111"/>
+  <rect x="6" y="7" width="1" height="1" fill="#fff"/>
+  <rect x="10" y="7" width="1" height="1" fill="#fff"/>
   <rect x="3" y="10" width="10" height="5" fill="#2980b9"/>
   <rect x="7" y="10" width="2" height="3" fill="#fff"/>
   <rect x="7" y="12" width="2" height="2" fill="#c0392b"/>
@@ -403,6 +406,10 @@ const femaleSVG = `
   <rect x="4" y="5" width="8" height="5" fill="#f3d2b3"/>
   <rect x="5" y="7" width="2" height="2" fill="#111"/>
   <rect x="9" y="7" width="2" height="2" fill="#111"/>
+  <rect x="6" y="7" width="1" height="1" fill="#fff"/>
+  <rect x="10" y="7" width="1" height="1" fill="#fff"/>
+  <rect x="4" y="8" width="1" height="1" fill="#e84393"/>
+  <rect x="11" y="8" width="1" height="1" fill="#e84393"/>
   <rect x="3" y="10" width="10" height="4" fill="#2980b9"/>
   <rect x="7" y="10" width="2" height="2" fill="#fff"/>
   <rect x="3" y="14" width="10" height="3" fill="#c0392b"/>
@@ -436,8 +443,8 @@ let mapData = [];
 let selectedGender = 'male';
 let isMainGame = false;
 
-let px = 80, py = 80;
-let mx = 150, my = 150;
+let px = 100, py = 100;
+let mx = 11 * TILE_SIZE + 20, my = 11 * TILE_SIZE + 20;
 let qteHp = 3, keyCount = 0, targetKeys = 1;
 let isHidden = false, isChased = false, isQTEActive = false, gameEnded = false;
 let isPaused = true;
@@ -448,7 +455,7 @@ let targetKey = 'W';
 let hideTimer = 6.0;
 let requiredPresses = 5;
 
-let mTargetX = 150, mTargetY = 150;
+let mTargetX = 11 * TILE_SIZE + 20, mTargetY = 11 * TILE_SIZE + 20;
 
 function initPreviews() {
   const mPrev = document.getElementById('mPrev');
@@ -457,9 +464,8 @@ function initPreviews() {
   if (fPrev) fPrev.innerHTML = `<div class="sprite" style="position:relative">${femaleSVG}</div>`;
 }
 
-// 🏫 튜토리얼 및 본 게임 생성 함수 분리 (튜토리얼은 기존 그대로 유지)
 function generateMap() {
-  mapSize = isMainGame ? 29 : 25; 
+  mapSize = isMainGame ? 40 : 25;
   targetKeys = isMainGame ? 3 : 1;
   
   const mapContainer = document.getElementById('map-container');
@@ -467,85 +473,48 @@ function generateMap() {
   mapContainer.style.height = (mapSize * TILE_SIZE) + 'px';
 
   mapData = [];
+  let freeTiles = [];
+
   for(let r=0; r<mapSize; r++) {
     let row = [];
     for(let c=0; c<mapSize; c++) {
       if(r===0 || r===mapSize-1 || c===0 || c===mapSize-1) {
         row.push(1);
-      } else {
+      } else if(r % 4 === 0 && c % 4 === 0 && Math.random() > 0.25) {
         row.push(1);
+      } else {
+        row.push(0);
+        if(r > 4 && c > 4 && !(r === mapSize-2 && c === mapSize-2)) {
+          freeTiles.push({r, c});
+        }
       }
     }
     mapData.push(row);
   }
+  
+  mapData[1][1] = 0; mapData[1][2] = 0;
+  mapData[2][1] = 0; mapData[2][2] = 0;
 
-  if(!isMainGame) {
-    // 🛡️ 기존 튜토리얼 맵 구조 완벽 유지
-    for(let r=1; r<mapSize-1; r++) {
-      for(let c=1; c<mapSize-1; c++) {
-        mapData[r][c] = 0;
-      }
-    }
-    for(let r=6; r<12; r++) {
-      for(let c=6; c<12; c++) {
-        mapData[r][c] = 1;
-      }
-    }
-    mapData[8][6] = 5; // 나무 문 (벽에 딱 붙음)
-    mapData[3][6] = 2; // 캐비닛
-    mapData[mapSize-2][mapSize-2] = 4; // 탈출문(START)
-    mapData[10][10] = 3; // 열쇠
-  } else {
-    // 🔥 본 게임: 적절한 수의 방, 넓은 통로, 그리고 "정확히 벽의 4면 테두리에만" 붙는 나무 문
-    for(let r = 1; r < mapSize - 1; r += 2) {
-      for(let c = 1; c < mapSize - 1; c += 2) {
-        mapData[r][c] = 0;
-        if(r + 2 < mapSize - 1 && Math.random() > 0.25) mapData[r+1][c] = 0;
-        if(c + 2 < mapSize - 1 && Math.random() > 0.25) mapData[r][c+1] = 0;
-      }
-    }
+  let cabPositions = isMainGame ? [
+    {r:3,c:3}, {r:8,c:15}, {r:15,c:8}, {r:20,c:20}, 
+    {r:10,c:30}, {r:30,c:10}, {r:32,c:32}, {r:25,c:35}
+  ] : [
+    {r:3,c:3}, {r:8,c:12}, {r:12,c:8}, {r:18,c:18}
+  ];
 
-    for(let r = 3; r < mapSize - 3; r += 4) {
-      for(let c = 3; c < mapSize - 3; c += 4) {
-        for(let dr = 0; dr < 3; dr++) {
-          for(let dc = 0; dc < 3; dc++) {
-            mapData[r+dr][c+dc] = 0;
-          }
-        }
-        if(Math.random() > 0.3) mapData[r][c+1] = 5;
-      }
-    }
+  cabPositions.forEach(p => {
+    if(p.r < mapSize-1 && p.c < mapSize-1) mapData[p.r][p.c] = 2;
+  });
 
-    for(let r = 1; r <= 3; r++) {
-      for(let c = 1; c <= 3; c++) {
-        mapData[r][c] = 0;
-      }
+  for(let i=0; i<targetKeys; i++) {
+    if(freeTiles.length > 0) {
+      let randomIndex = Math.floor(Math.random() * freeTiles.length);
+      let keyPos = freeTiles.splice(randomIndex, 1)[0];
+      mapData[keyPos.r][keyPos.c] = 3;
     }
-
-    let placedCabs = 0;
-    while(placedCabs < 6) {
-      let rr = Math.floor(Math.random() * (mapSize - 4)) + 2;
-      let rc = Math.floor(Math.random() * (mapSize - 4)) + 2;
-      if(mapData[rr][rc] === 0) {
-        mapData[rr][rc] = 2;
-        placedCabs++;
-      }
-    }
-
-    let placedKeys = 0;
-    while(placedKeys < 3) {
-      let kr = Math.floor(Math.random() * (mapSize - 4)) + 2;
-      let kc = Math.floor(Math.random() * (mapSize - 4)) + 2;
-      if(mapData[kr][kc] === 0) {
-        mapData[kr][kc] = 3;
-        placedKeys++;
-      }
-    }
-
-    mapData[mapSize-2][mapSize-2] = 4;
-    mapData[mapSize-3][mapSize-2] = 0;
-    mapData[mapSize-2][mapSize-3] = 0;
   }
+
+  mapData[mapSize-2][mapSize-2] = 4;
 }
 
 function renderMap() {
@@ -563,7 +532,6 @@ function renderMap() {
       if(type === 1) tileClass = 'wall';
       else if(type === 2) tileClass = 'cab';
       else if(type === 3) { tileClass = 'key-item'; content = keySVG; }
-      else if(type === 5) { tileClass = 'wood-door'; content = 'DOOR'; }
       else if(type === 4) { tileClass = 'door'; content = isMainGame ? 'EXIT' : 'START'; }
 
       html += `<div class="tile ${tileClass}" style="left:${c*TILE_SIZE}px; top:${r*TILE_SIZE}px;">${content}</div>`;
@@ -573,7 +541,8 @@ function renderMap() {
 }
 
 function resetGameState() {
-  px = 80; py = 80;
+  px = 100; py = 100;
+  mx = 11 * TILE_SIZE + 20; my = 11 * TILE_SIZE + 20;
   qteHp = 3; keyCount = 0;
   isHidden = false; isChased = false; isQTEActive = false; gameEnded = false;
   stealthTimer = 0;
@@ -582,8 +551,6 @@ function resetGameState() {
   stopAmbientBGM();
   
   generateMap();
-  mx = (mapSize - 3) * TILE_SIZE;
-  my = (mapSize - 3) * TILE_SIZE;
 
   document.getElementById('keyCount').textContent = keyCount;
   document.getElementById('targetKeyCount').textContent = targetKeys;
@@ -598,7 +565,7 @@ function resetGameState() {
 
 function startGame(type) {
   if(type) selectedGender = type;
-  playSound('door');
+  playLockerSound();
   
   isMainGame = false;
   document.getElementById('title').classList.add('hidden');
@@ -619,11 +586,12 @@ function startGame(type) {
 function startMainGame() {
   isMainGame = true;
   document.getElementById('stageTitle').textContent = "🔥 [본 게임 스테이지]";
-  document.getElementById('stageDesc').textContent = "미로 같은 교실과 나무 문을 헤쳐나가 열쇠 3개를 모으세요!";
+  document.getElementById('stageDesc').textContent = "하얀 타일 복도의 거대해진 학교! 괴물의 추격을 피하세요!";
   document.getElementById('stageGoals').innerHTML = `
-    <li><b>맵 구조:</b> 소형/대형 교실과 벽에 깔끔하게 붙은 나무 문으로 이루어진 미로 학교.</li>
-    <li><b>목표:</b> 구석구석 숨겨진 <b>열쇠 3개(🔑 0/3)</b>를 모두 수집하세요!</li>
-    <li><b>탈출:</b> 열쇠를 모두 모은 뒤 우측 하단의 EXIT 문을 열고 탈출하세요.</li>
+    <li><b>맵 크기:</b> 40x40의 거대한 하얀색 학교 복도입니다.</li>
+    <li><b>목표:</b> 학교 어딘가 숨겨진 <b>열쇠 3개(🔑 0/3)</b>를 모두 수집하세요!</li>
+    <li><b>추격자:</b> 튜토리얼과 동일한 속도와 QTE 난이도입니다.</li>
+    <li><b>탈출:</b> 열쇠 3개를 모은 뒤 우측 하단의 EXIT 문을 열고 탈출하세요.</li>
   `;
   
   document.getElementById('winScreen').classList.add('hidden');
@@ -653,12 +621,13 @@ function restartGame() {
 }
 
 function closeTutorial() {
-  playSound('door');
+  playLockerSound();
   document.getElementById('tutorialNotice').classList.add('hidden');
   isPaused = false;
   startAmbientBGM();
 }
 
+// 🛡️ 버그 방지: 키 입력 및 포커스 이탈 제어 리스너
 document.addEventListener('keydown', e => {
   if(isPaused || gameEnded) return;
 
@@ -679,10 +648,12 @@ document.addEventListener('keyup', e => {
   keysPressed[e.key.toLowerCase()] = false;
 });
 
+// 브라우저 창 전환, 탭 이동, 또는 마우스 우클릭 등으로 포커스가 나갔을 때 키가 고착되는 현상 방지
 window.addEventListener('blur', () => {
   keysPressed = {};
 });
 
+// 우클릭 메뉴로 인한 입력 꼬임 방지
 document.addEventListener('contextmenu', e => {
   e.preventDefault();
 });
@@ -700,8 +671,7 @@ function isSolid(x, y) {
     let col = Math.floor(p.x / TILE_SIZE);
     let row = Math.floor(p.y / TILE_SIZE);
     if(row < 0 || row >= mapSize || col < 0 || col >= mapSize) return true;
-    let type = mapData[row][col];
-    if(type === 1 || type === 5) return true;
+    if(mapData[row][col] === 1) return true;
   }
   return false;
 }
@@ -729,18 +699,16 @@ function updatePlayer() {
   const prefix = isMainGame ? '[본 게임]' : '[튜토리얼]';
 
   if(tileType === 2) {
-    document.getElementById('mission').textContent = '[E] 키를 눌러 사물함에 숨으세요!';
+    document.getElementById('mission').textContent = '[E] 키를 눌러 캐비닛에 숨으세요!';
   } else if(tileType === 3) {
     document.getElementById('mission').textContent = '[E] 키를 눌러 열쇠를 줍으세요!';
-  } else if(tileType === 5) {
-    document.getElementById('mission').textContent = '[E] 키를 눌러 나무 문을 여세요!';
   } else if(tileType === 4) {
     if(keyCount >= targetKeys) document.getElementById('mission').textContent = isMainGame ? '[E] 학교 탈출 문 열기!' : '[E] 본 게임 이동!';
     else document.getElementById('mission').textContent = `문이 잠겨 있습니다. (열쇠 ${keyCount}/${targetKeys})`;
   } else if(keyCount < targetKeys) {
-    document.getElementById('mission').textContent = `${prefix} 미로 속 교실에서 열쇠를 찾으세요! (${keyCount}/${targetKeys})`;
+    document.getElementById('mission').textContent = `${prefix} 열쇠를 찾으세요! (${keyCount}/${targetKeys})`;
   } else {
-    document.getElementById('mission').textContent = `${prefix} 우측 하단 탈출 문으로 이동하세요!`;
+    document.getElementById('mission').textContent = `${prefix} 탈출 문(우측 하단)으로 이동하세요!`;
   }
 }
 
@@ -756,14 +724,9 @@ function handleInteraction() {
     return;
   }
 
-  if(tileType === 5) {
-    playSound('door');
-    mapData[pRow][pCol] = 0; 
-    renderMap();
-    document.getElementById('mission').textContent = '나무 문을 열었습니다!';
-  }
-  else if(tileType === 2) {
-    playSound('locker');
+  if(tileType === 2) {
+    playLockerSound();
+    
     let monsterDist = Math.hypot(px - mx, py - my);
     
     if(isChased || monsterDist < 280) {
@@ -837,22 +800,28 @@ function updateMonster() {
   }
 
   let dist = Math.hypot(px - mx, py - my);
-  let detectRange = 280;
+  let detectRange = 260;
   
   if(dist < detectRange && !isHidden && stealthTimer <= 0) {
     isChased = true;
     document.getElementById('alert').style.display = 'block';
     startChaseBGM();
     
-    let speed = 2.8; 
+    let speed = 2.9; 
     let angle = Math.atan2(py - my, px - mx);
     let vx = Math.cos(angle) * speed;
     let vy = Math.sin(angle) * speed;
 
     let movedX = false, movedY = false;
 
-    if(!isSolid(mx + vx, my)) { mx += vx; movedX = true; }
-    if(!isSolid(mx, my + vy)) { my += vy; movedY = true; }
+    if(!isSolid(mx + vx, my)) {
+      mx += vx;
+      movedX = true;
+    }
+    if(!isSolid(mx, my + vy)) {
+      my += vy;
+      movedY = true;
+    }
 
     if(!movedX && !movedY) {
       if(!isSolid(mx + speed, my)) mx += speed;
@@ -875,7 +844,7 @@ function updateMonster() {
     if(tDist < 25) {
       pickMonsterNewTarget();
     } else {
-      let speed = 1.7;
+      let speed = 1.8;
       let angle = Math.atan2(mTargetY - my, mTargetX - mx);
       let vx = Math.cos(angle) * speed;
       let vy = Math.sin(angle) * speed;
@@ -961,7 +930,7 @@ function exitCabinetQTESuccess() {
 }
 
 function exitCabinetSafe() {
-  playSound('door');
+  playLockerSound();
   isHidden = false;
   startAmbientBGM();
   document.getElementById('hideUI').classList.add('hidden');
@@ -992,7 +961,7 @@ function win() {
     btn.onclick = function() { startMainGame(); };
   } else {
     document.getElementById('winTitle').textContent = "🏆 게임 최종 클리어!";
-    document.getElementById('winDesc').textContent = "축하합니다! 미로 속 교실들과 나무 문을 거쳐 열쇠 3개를 모두 찾고 학교를 탈출했습니다!";
+    document.getElementById('winDesc').textContent = "축하합니다! 열쇠 3개를 모두 찾아 40x40 백색 타일 복도를 무사히 탈출했습니다!";
     const btn = document.getElementById('winBtn');
     btn.textContent = "첫 화면으로 돌아가기";
     btn.onclick = function() { location.reload(); };
