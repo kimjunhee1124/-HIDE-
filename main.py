@@ -172,12 +172,12 @@ body{
 
   <div id="title" class="screen">
     <div class="title">👻 HIDE : PIXEL SCHOOL</div>
-    <div class="sub">미로 같은 교실과 나무 문을 헤쳐나와 열쇠를 모으세요!</div>
+    <div class="sub">튜토리얼부터 본 게임까지 완벽한 미로 탐색 호러!</div>
     
     <div class="controls-box">
       <div style="font-size:16px; font-weight:bold; margin-bottom:6px; color:#fff;">🎮 조작 안내</div>
       <div>이동: <b>W, A, S, D</b> 또는 <b>방향키</b></div>
-      <div>상호작용 (문 열기 / 은신 / 열쇠 획득): <b style="color:#f1c40f;">[ E ] Key</b></div>
+      <div>상호작용 (문 열기 / 캐비닛 숨기 / 열쇠 획득): <b style="color:#f1c40f;">[ E ] Key</b></div>
     </div>
 
     <div class="selects">
@@ -202,11 +202,11 @@ body{
     <div id="tutorialNotice">
       <div class="notice-box">
         <h2 id="stageTitle">📢 [튜토리얼 스테이지]</h2>
-        <p style="color:#f1c40f; font-weight:bold;" id="stageDesc">나무 문을 열고 들어가 숨겨진 열쇠를 찾으세요!</p>
+        <p style="color:#f1c40f; font-weight:bold;" id="stageDesc">본 게임 진입 전, 기본 조작과 은신 방법을 익히세요!</p>
         <ul id="stageGoals">
-          <li><b>목표:</b> 교실 안을 탐색해 나무 문을 열고 열쇠(🔑 1개)를 찾으세요.</li>
+          <li><b>목표:</b> 열쇠(🔑 1개)를 찾으세요.</li>
           <li><b>은신 연습:</b> 괴물이 다가오면 캐비닛에 숨어 QTE 미션을 수행하세요.</li>
-          <li><b>입장:</b> 열쇠로 탈출 문을 열어 본 게임으로 향하세요.</li>
+          <li><b>입장:</b> 열쇠로 우측 하단의 START 문을 열어 본 게임으로 향하세요.</li>
         </ul>
         <button class="bigbtn" style="background:#2980b9; border-color:#3498db;" onclick="closeTutorial()">이해했습니다 (시작)</button>
       </div>
@@ -214,7 +214,7 @@ body{
 
     <div id="hud">
       <div class="panel">🔑 열쇠: <span id="keyCount">0</span>/<span id="targetKeyCount">1</span></div>
-      <div class="panel">상태: <span id="mission" style="color:#f1c40f;">[튜토리얼] 교실의 나무 문을 열어보세요!</span></div>
+      <div class="panel">상태: <span id="mission" style="color:#f1c40f;">[튜토리얼] 열쇠를 찾으세요!</span></div>
       <div class="panel" style="color:#aaa;">조작: WASD(이동) / E(상호작용)</div>
     </div>
     <div id="alert">! 경고: 괴물이 추격 중 !</div>
@@ -251,7 +251,7 @@ body{
 
   <div id="winScreen" class="screen hidden">
     <h1 id="winTitle" style="font-size:40px; color:#27ae60; text-shadow:3px 3px #000;">🎓 튜토리얼 클리어!</h1>
-    <p id="winDesc" style="color:#a6a6a6;">미로 탐색법을 익혔습니다. 이제 본 게임으로 입장합니다...</p>
+    <p id="winDesc" style="color:#a6a6a6;">기본 생존 수칙을 모두 익혔습니다. 이제 본 게임으로 입장합니다...</p>
     <button id="winBtn" class="bigbtn" style="background:#27ae60; border-color:#2ecc71;" onclick="startMainGame()">본 게임 시작하기</button>
   </div>
 
@@ -286,20 +286,18 @@ function playSound(type) {
       osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.2);
       gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.2);
     } else {
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(150, audioCtx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.15);
       gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.15);
     }
 
     osc.connect(gain);
     gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.2);
   } catch(e) {}
 }
 
@@ -362,7 +360,6 @@ function startChaseBGM() {
       gain.connect(audioCtx.destination);
       osc.start(now);
       osc.stop(now + 0.25);
-      
       bgmStep++;
     } catch(e) {}
   }, 300);
@@ -376,7 +373,7 @@ function stopChaseBGM() {
 }
 
 const TILE_SIZE = 40;
-let mapSize = 35;
+let mapSize = 25;
 const maxHideTime = 6.0;
 
 const maleSVG = `
@@ -435,8 +432,8 @@ let mapData = [];
 let selectedGender = 'male';
 let isMainGame = false;
 
-let px = 80, py = 80;
-let mx = 150, my = 150;
+let px = 100, py = 100;
+let mx = 11 * TILE_SIZE + 20, my = 11 * TILE_SIZE + 20;
 let qteHp = 3, keyCount = 0, targetKeys = 1;
 let isHidden = false, isChased = false, isQTEActive = false, gameEnded = false;
 let isPaused = true;
@@ -447,7 +444,7 @@ let targetKey = 'W';
 let hideTimer = 6.0;
 let requiredPresses = 5;
 
-let mTargetX = 150, mTargetY = 150;
+let mTargetX = 11 * TILE_SIZE + 20, mTargetY = 11 * TILE_SIZE + 20;
 
 function initPreviews() {
   const mPrev = document.getElementById('mPrev');
@@ -456,7 +453,7 @@ function initPreviews() {
   if (fPrev) fPrev.innerHTML = `<div class="sprite" style="position:relative">${femaleSVG}</div>`;
 }
 
-// 🏫 미로형 교실 및 나무 문 무작위 생성 알고리즘 (Ao Oni 스타일)
+// 🛡️ 완벽하게 통행 가능한 길을 보장하며 교실과 나무 문(5)을 배치하는 알고리즘
 function generateMap() {
   mapSize = isMainGame ? 35 : 25;
   targetKeys = isMainGame ? 3 : 1;
@@ -465,82 +462,77 @@ function generateMap() {
   mapContainer.style.width = (mapSize * TILE_SIZE) + 'px';
   mapContainer.style.height = (mapSize * TILE_SIZE) + 'px';
 
-  // 1: 벽, 0: 복도/바닥, 2: 사물함(은신처), 3: 열쇠, 4: 탈출구(출구), 5: 잠긴/열린 나무문
+  // 1: 벽, 0: 복도/바닥, 2: 사물함, 3: 열쇠, 4: 탈출구, 5: 나무 문
   mapData = [];
   for(let r=0; r<mapSize; r++) {
     let row = [];
     for(let c=0; c<mapSize; c++) {
-      if(r===0 || r===mapSize-1 || c===0 || c===mapSize-1) {
-        row.push(1);
-      } else {
-        row.push(1); // 기본을 벽으로 두고 교실들을 뚫음
-      }
+      row.push(1);
     }
     mapData.push(row);
   }
 
-  // 복도 및 방 격자 생성
-  let roomSize = 6;
-  let rooms = [];
-  
-  for(let rr = 1; rr < mapSize - roomSize; rr += roomSize) {
-    for(let cc = 1; cc < mapSize - roomSize; cc += roomSize) {
-      if(Math.random() > 0.15) {
-        let rw = 4 + Math.floor(Math.random() * 2);
-        let rh = 4 + Math.floor(Math.random() * 2);
-        rooms.push({r: rr, c: cc, h: rh, w: rw});
-        
-        // 방 내부 바닥(0)으로 파기
-        for(let r = rr; r < rr + rh && r < mapSize-1; r++) {
-          for(let c = cc; c < cc + rw && c < mapSize-1; c++) {
-            mapData[r][c] = 0;
-          }
+  // 기본 격자 미로 회랑 생성 (모든 길이 서로 연결되어 탈출구로 갈 수 있음을 보장)
+  for(let r = 1; r < mapSize - 1; r += 2) {
+    for(let c = 1; c < mapSize - 1; c += 2) {
+      mapData[r][c] = 0;
+      // 랜덤하게 인접 칸을 뚫어 복도 미로 형성
+      if(r + 2 < mapSize - 1 && Math.random() > 0.3) mapData[r+1][c] = 0;
+      if(c + 2 < mapSize - 1 && Math.random() > 0.3) mapData[r][c+1] = 0;
+    }
+  }
+
+  // 추가적인 복도 연결 통로 확보
+  for(let r = 2; r < mapSize - 2; r += 4) {
+    for(let c = 2; c < mapSize - 2; c += 4) {
+      mapData[r][c] = 0;
+      mapData[r+1][c] = 0;
+      mapData[r][c+1] = 0;
+    }
+  }
+
+  // 벽에 붙어 있는 '나무 문(5)'과 방(실내 공간) 연결
+  // 복도 테두리 벽 중 빈 공간과 인접한 곳에 나무 문 배치하여 열고 들어가면 안쪽 방 유형 유지
+  for(let r = 2; r < mapSize - 2; r++) {
+    for(let c = 2; c < mapSize - 2; c++) {
+      if(mapData[r][c] === 1) {
+        // 상하좌우 중 한쪽은 복도(0)이고 반대쪽은 막힌 벽일 때 나무 문 설치 기회 부여
+        let openNeighbors = 0;
+        if(mapData[r-1][c] === 0) openNeighbors++;
+        if(mapData[r+1][c] === 0) openNeighbors++;
+        if(mapData[r][c-1] === 0) openNeighbors++;
+        if(mapData[r][c+1] === 0) openNeighbors++;
+
+        if(openNeighbors === 1 && Math.random() > 0.5) {
+          mapData[r][c] = 5; // 벽에 단단히 붙어있는 나무 문
+          // 문 안쪽 공간을 방(0)으로 확장하여 고정된 방 공간 생성
+          if(r-1 >= 0) mapData[r-1][c] = 0;
+          if(c+1 < mapSize) mapData[r][c+1] = 0;
         }
       }
     }
   }
 
-  // 방들과 복도를 이어주는 미로 통로 및 나무 문(5) 배치
-  for(let i=0; i<rooms.length; i++) {
-    let room = rooms[i];
-    // 방 테두리에 나무 문 설치 (랜덤 한 변에 문 생성)
-    let doorSide = Math.floor(Math.random() * 4);
-    let dr = room.r, dc = room.c;
-    if(doorSide === 0) { dr = room.r; dc = room.c + Math.floor(room.w/2); }
-    else if(doorSide === 1) { dr = room.r + room.h - 1; dc = room.c + Math.floor(room.w/2); }
-    else if(doorSide === 2) { dr = room.r + Math.floor(room.h/2); dc = room.c; }
-    else { dr = room.r + Math.floor(room.h/2); dc = room.c + room.w - 1; }
-
-    if(dr > 0 && dr < mapSize-1 && dc > 0 && dc < mapSize-1) {
-      mapData[dr][dc] = 5; // 나무 문
-    }
-
-    // 방 내부 사물함(2) 배치
-    if(Math.random() > 0.4 && room.h >= 5 && room.w >= 5) {
-      mapData[room.r + 1][room.c + 1] = 2;
-    }
-  }
-
-  // 교실 사이를 잇는 십자 복도 뚫기
-  for(let r = 2; r < mapSize-2; r += 3) {
-    for(let c = 1; c < mapSize-1; c++) {
-      if(mapData[r][c] === 1 && Math.random() > 0.2) mapData[r][c] = 0;
-    }
-  }
-  for(let c = 2; c < mapSize-2; c += 3) {
-    for(let r = 1; r < mapSize-1; r++) {
-      if(mapData[r][c] === 1 && Math.random() > 0.2) mapData[r][c] = 0;
-    }
-  }
-
-  // 플레이어 시작 위치 확보 (좌측 상단 안전구역)
+  // 플레이어 시작 위치 (좌측 상단 안전구역 확보)
   for(let r = 1; r <= 3; r++) {
     for(let c = 1; c <= 3; c++) {
       mapData[r][c] = 0;
     }
   }
 
-  // 열쇠(3) 랜덤 배치 (방 구석이나 미로 깊은 곳)
+  // 사물함(2) 배치 (방 내부나 구석)
+  let cabCount = isMainGame ? 8 : 4;
+  let placedCabs = 0;
+  while(placedCabs < cabCount) {
+    let rr = Math.floor(Math.random() * (mapSize - 4)) + 2;
+    let rc = Math.floor(Math.random() * (mapSize - 4)) + 2;
+    if(mapData[rr][rc] === 0) {
+      mapData[rr][rc] = 2;
+      placedCabs++;
+    }
+  }
+
+  // 열쇠(3) 랜덤 배치
   let placedKeys = 0;
   while(placedKeys < targetKeys) {
     let kr = Math.floor(Math.random() * (mapSize - 4)) + 2;
@@ -551,10 +543,11 @@ function generateMap() {
     }
   }
 
-  // 탈출구(4) 우측 하단 배치
+  // 탈출구(4) 우측 하단 배치 및 주변 확실히 오픈
   mapData[mapSize-2][mapSize-2] = 4;
   mapData[mapSize-3][mapSize-2] = 0;
   mapData[mapSize-2][mapSize-3] = 0;
+  mapData[mapSize-3][mapSize-3] = 0;
 }
 
 function renderMap() {
@@ -628,11 +621,11 @@ function startGame(type) {
 function startMainGame() {
   isMainGame = true;
   document.getElementById('stageTitle').textContent = "🔥 [본 게임 스테이지]";
-  document.getElementById('stageDesc').textContent = "거대하고 복잡한 미로 교실들! 나무 문을 열고 열쇠 3개를 찾으세요.";
+  document.getElementById('stageDesc').textContent = "미로 같은 교실과 고정된 방들! 나무 문을 열고 열쇠 3개를 찾으세요.";
   document.getElementById('stageGoals').innerHTML = `
-    <li><b>맵 구조:</b> 수많은 교실과 나무 문들로 이루어진 미로 학교입니다.</li>
-    <li><b>목표:</b> 교실 곳곳을 뒤져 <b>열쇠 3개(🔑 0/3)</b>를 모두 수집하세요!</li>
-    <li><b>추격자:</b> 미로 벽을 뚫고 추격해오는 괴물을 피하세요.</li>
+    <li><b>맵 구조:</b> 모든 길이 연결된 미로 학교, 벽에 붙은 나무 문과 고정된 방들.</li>
+    <li><b>목표:</b> 구석구석 숨겨진 <b>열쇠 3개(🔑 0/3)</b>를 모두 수집하세요!</li>
+    <li><b>추격자:</b> 괴물의 추격을 피해 은신처를 활용하세요.</li>
     <li><b>탈출:</b> 열쇠를 모두 모은 뒤 우측 하단의 EXIT 문을 열고 탈출하세요.</li>
   `;
   
@@ -711,7 +704,7 @@ function isSolid(x, y) {
     let row = Math.floor(p.y / TILE_SIZE);
     if(row < 0 || row >= mapSize || col < 0 || col >= mapSize) return true;
     let type = mapData[row][col];
-    if(type === 1 || type === 5) return true; // 벽과 닫힌 나무문은 통과 불가
+    if(type === 1 || type === 5) return true;
   }
   return false;
 }
@@ -739,7 +732,7 @@ function updatePlayer() {
   const prefix = isMainGame ? '[본 게임]' : '[튜토리얼]';
 
   if(tileType === 2) {
-    document.getElementById('mission').textContent = '[E] 키를 눌러 사물함/캐비닛에 숨으세요!';
+    document.getElementById('mission').textContent = '[E] 키를 눌러 사물함에 숨으세요!';
   } else if(tileType === 3) {
     document.getElementById('mission').textContent = '[E] 키를 눌러 열쇠를 줍으세요!';
   } else if(tileType === 5) {
@@ -768,7 +761,7 @@ function handleInteraction() {
 
   if(tileType === 5) {
     playSound('door');
-    mapData[pRow][pCol] = 0; // 문을 열면 바닥으로 변경
+    mapData[pRow][pCol] = 0; // 한 번 열면 그 자리에 고정되어 계속 열린 방으로 유지됨
     renderMap();
     document.getElementById('mission').textContent = '나무 문을 열었습니다!';
   }
@@ -990,7 +983,7 @@ function lose(reason) {
 function win() {
   gameEnded = true;
   stopChaseBGM();
-  stopAmbientBgm = stopAmbientBGM();
+  stopAmbientBGM();
   document.getElementById('world').classList.add('hidden');
   document.getElementById('winScreen').classList.remove('hidden');
   
@@ -1002,7 +995,7 @@ function win() {
     btn.onclick = function() { startMainGame(); };
   } else {
     document.getElementById('winTitle').textContent = "🏆 게임 최종 클리어!";
-    document.getElementById('winDesc').textContent = "축하합니다! 수많은 교실과 나무 문을 거쳐 열쇠 3개를 모두 찾고 학교를 탈출했습니다!";
+    document.getElementById('winDesc').textContent = "축하합니다! 미로 속 교실들과 고정된 방들을 탐색해 열쇠 3개를 모두 찾고 학교를 탈출했습니다!";
     const btn = document.getElementById('winBtn');
     btn.textContent = "첫 화면으로 돌아가기";
     btn.onclick = function() { location.reload(); };
