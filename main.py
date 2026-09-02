@@ -65,9 +65,9 @@ body{
 @keyframes bounce { from { transform:translateY(-2px); } to { transform:translateY(3px); } }
 
 .door{
-  background:#8b2626; border:3px solid #3a0d0d; text-align:center; 
-  line-height:34px; font-weight:bold; color:#ffb3b3; font-size:12px;
-  box-shadow:inset 2px 2px 0 #ad3b3b;
+  background:#27ae60; border:3px solid #1e8449; text-align:center; 
+  line-height:34px; font-weight:bold; color:#e8f8f5; font-size:10px;
+  box-shadow:inset 2px 2px 0 #52be80;
 }
 
 .sprite{
@@ -107,6 +107,18 @@ body{
   font-size:20px; background:#c0392b; color:#fff; padding:4px 16px; font-weight:bold;
   display:none; border:2px solid #000; box-shadow:3px 3px 0 #000;
 }
+
+/* 튜토리얼 가이드 팝업 */
+#tutorialNotice{
+  position:absolute; z-index:90; inset:0; background:rgba(0,0,0,0.8);
+  display:flex; align-items:center; justify-content:center;
+}
+.notice-box{
+  background:#161920; border:3px solid #3498db; padding:25px 35px; border-radius:8px;
+  max-width:550px; text-align:center; box-shadow:0 0 20px rgba(52,152,219,0.4);
+}
+.notice-box h2{color:#3498db; margin-top:0;}
+.notice-box ul{text-align:left; color:#dcdde1; line-height:1.6; margin:15px 0;}
 
 #hideUI{
   position:absolute; z-index:100; inset:0;
@@ -151,7 +163,7 @@ body{
     <div class="controls-box">
       <div style="font-size:16px; font-weight:bold; margin-bottom:6px; color:#fff;">🎮 조작 안내</div>
       <div>이동: <b>W, A, S, D</b> 또는 <b>방향키</b></div>
-      <div>상호작용 (은신 / 열쇠 획득 / 탈출): <b style="color:#f1c40f;">[ E ] Key</b></div>
+      <div>상호작용 (은신 / 열쇠 획득 / 이동): <b style="color:#f1c40f;">[ E ] Key</b></div>
     </div>
 
     <div class="selects">
@@ -173,9 +185,23 @@ body{
       <div id="monster" class="sprite"></div>
     </div>
 
+    <!-- 튜토리얼 안 내 팝업 -->
+    <div id="tutorialNotice">
+      <div class="notice-box">
+        <h2>📢 [튜토리얼 스테이지]</h2>
+        <p style="color:#f1c40f; font-weight:bold;">본격적인 학교 탈출 전, 생존 법칙을 익히세요!</p>
+        <ul>
+          <li><b>목표:</b> 열쇠(🔑)를 찾아 문으로 가세요.</li>
+          <li><b>은신:</b> 괴물이 다가오면 캐비닛에 숨고, <b>QTE 미션</b>(키 입력)을 완수하세요.</li>
+          <li><b>본 게임 진입:</b> 문에 도착하면 본 게임이 시작됩니다.</li>
+        </ul>
+        <button class="bigbtn" style="background:#2980b9; border-color:#3498db;" onclick="closeTutorial()">이해했습니다 (시작)</button>
+      </div>
+    </div>
+
     <div id="hud">
       <div class="panel">❤️ HP: <span id="hp">3</span> | 🔑 열쇠: <span id="keyCount">0</span>/1</div>
-      <div class="panel">상태: <span id="mission" style="color:#f1c40f;">열쇠를 찾고 출구로 탈출하세요!</span></div>
+      <div class="panel">상태: <span id="mission" style="color:#f1c40f;">[튜토리얼] 열쇠를 찾으세요!</span></div>
       <div class="panel" style="color:#aaa;">조작: WASD(이동) / E(상호작용)</div>
     </div>
     <div id="alert">! 경고: 괴물이 추격 중 !</div>
@@ -207,16 +233,15 @@ body{
   </div>
 
   <div id="winScreen" class="screen hidden">
-    <h1 style="font-size:48px; color:#27ae60; text-shadow:3px 3px #000;">ESCAPE SUCCESS!</h1>
-    <p style="color:#a6a6a6;">무사히 학교를 탈출했습니다!</p>
-    <button class="bigbtn" style="background:#27ae60; border-color:#2ecc71;" onclick="location.reload()">다시 시작</button>
+    <h1 style="font-size:40px; color:#27ae60; text-shadow:3px 3px #000;">🎓 튜토리얼 클리어!</h1>
+    <p style="color:#a6a6a6;">기본 생존 수칙을 모두 익혔습니다. 이제 본 게임으로 입장합니다...</p>
+    <button class="bigbtn" style="background:#27ae60; border-color:#2ecc71;" onclick="location.reload()">본 게임 시작하기</button>
   </div>
 
 </div>
 </div>
 
 <script>
-// Web Audio API를 사용한 자체 효과음 생성 시스템
 let audioCtx = null;
 
 function playLockerSound() {
@@ -354,7 +379,7 @@ function renderMap() {
       if(type === 1) tileClass = 'wall';
       else if(type === 2) tileClass = 'cab';
       else if(type === 3) { tileClass = 'key-item'; content = keySVG; }
-      else if(type === 4) { tileClass = 'door'; content = 'EXIT'; }
+      else if(type === 4) { tileClass = 'door'; content = 'START'; }
 
       html += `<div class="tile ${tileClass}" style="left:${c*TILE_SIZE}px; top:${r*TILE_SIZE}px;">${content}</div>`;
     }
@@ -367,6 +392,7 @@ let px = 100, py = 100;
 let mx = 800, my = 800;
 let hp = 3, hasKey = false;
 let isHidden = false, isChased = false, isQTEActive = false, gameEnded = false;
+let isPaused = true;
 let keysPressed = {};
 
 let stealthTimer = 0;
@@ -386,7 +412,15 @@ function startGame(type) {
   requestAnimationFrame(gameLoop);
 }
 
+function closeTutorial() {
+  playLockerSound();
+  document.getElementById('tutorialNotice').classList.add('hidden');
+  isPaused = false;
+}
+
 document.addEventListener('keydown', e => {
+  if(isPaused) return;
+
   const k = e.key.toLowerCase();
   keysPressed[k] = true;
 
@@ -434,12 +468,12 @@ function updatePlayer() {
   } else if(tileType === 3) {
     document.getElementById('mission').textContent = '[E] 키를 눌러 열쇠를 줍으세요!';
   } else if(tileType === 4) {
-    if(hasKey) document.getElementById('mission').textContent = '[E] 키를 눌러 출구로 탈출하세요!';
-    else document.getElementById('mission').textContent = '출구입니다. 열쇠가 필요합니다!';
+    if(hasKey) document.getElementById('mission').textContent = '[E] 키를 눌러 본 게임 스타트 문으로 이동하세요!';
+    else document.getElementById('mission').textContent = '스타트 문입니다. 열쇠가 필요합니다!';
   } else if(!hasKey) {
-    document.getElementById('mission').textContent = '열쇠를 찾고 출구로 탈출하세요!';
+    document.getElementById('mission').textContent = '[튜토리얼] 열쇠를 찾으세요!';
   } else {
-    document.getElementById('mission').textContent = '열쇠를 획득했습니다! 출구(48,48)로 이동하세요!';
+    document.getElementById('mission').textContent = '[튜토리얼 완료 가능] 스타트 문(48,48)으로 이동하세요!';
   }
 }
 
@@ -490,7 +524,7 @@ function handleInteraction() {
     mapData[pRow][pCol] = 0;
     renderMap();
     document.getElementById('keyCount').textContent = '1';
-    document.getElementById('mission').textContent = '열쇠를 획득했습니다! 출구로 탈출하세요!';
+    document.getElementById('mission').textContent = '열쇠 획득! 스타트 문으로 이동하세요!';
   }
   else if(tileType === 4) {
     if(hasKey) win();
@@ -521,7 +555,7 @@ function updateMonster() {
     if(!isSolid(nx, my)) mx = nx;
     if(!isSolid(mx, ny)) my = ny;
 
-    if(dist < 28) lose("괴물에게 잡혔습니다!");
+    if(dist < 28) lose("괴물에게 붙잡혔습니다!");
   } 
   else {
     isChased = false;
@@ -636,17 +670,19 @@ function gameLoop(now) {
   let dt = (now - lastTime) / 1000;
   lastTime = now;
 
-  if(stealthTimer > 0) stealthTimer -= dt;
+  if(!isPaused) {
+    if(stealthTimer > 0) stealthTimer -= dt;
 
-  if(!isHidden) {
-    updatePlayer();
-  } else if(isQTEActive) {
-    updateHideLogic(dt);
+    if(!isHidden) {
+      updatePlayer();
+    } else if(isQTEActive) {
+      updateHideLogic(dt);
+    }
+
+    updateMonster();
+    updateCamera();
+    draw();
   }
-
-  updateMonster();
-  updateCamera();
-  draw();
 
   requestAnimationFrame(gameLoop);
 }
