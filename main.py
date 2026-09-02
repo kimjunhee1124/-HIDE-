@@ -113,7 +113,9 @@ body{
   position:absolute; z-index:40; left:50%; top:20px; transform:translateX(-50%);
   font-size:20px; background:#c0392b; color:#fff; padding:4px 16px; font-weight:bold;
   display:none; border:2px solid #000; box-shadow:3px 3px 0 #000;
+  animation: pulseAlert 0.5s infinite alternate;
 }
+@keyframes pulseAlert { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.05); } }
 
 #tutorialNotice{
   position:absolute; z-index:90; inset:0; background:rgba(0,0,0,0.8);
@@ -252,16 +254,21 @@ body{
 
 <script>
 let audioCtx = null;
+let bgmInterval = null;
+let bgmStep = 0;
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
 
 function playLockerSound() {
   try {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-
+    initAudio();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
 
@@ -278,6 +285,62 @@ function playLockerSound() {
     osc.start();
     osc.stop(audioCtx.currentTime + 0.15);
   } catch(e) {}
+}
+
+// 긴박한 추격 BGM 루프 제어
+function startChaseBGM() {
+  if (bgmInterval) return; // 이미 재생 중이면 중복 실행 방지
+  initAudio();
+  
+  bgmStep = 0;
+  bgmInterval = setInterval(() => {
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    
+    try {
+      const now = audioCtx.currentTime;
+      
+      // 긴박한 심장박동 / 공포 타악기 신시사이저 비트
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      
+      // 리듬 패턴에 따른 음높이 변화 (불협화음 기반의 공포톤)
+      const freqs = [82.41, 110.0, 77.78, 116.54]; // E2, A2, Eb2, Bb2
+      osc.type = (bgmStep % 2 === 0) ? 'sawtooth' : 'square';
+      osc.frequency.setValueAtTime(freqs[bgmStep % freqs.length], now);
+      
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      
+      osc.start(now);
+      osc.stop(now + 0.25);
+      
+      // 박자 엇박 추가 연출 (긴장감 가중)
+      if (bgmStep % 2 === 1) {
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(330, now + 0.1);
+        gain2.gain.setValueAtTime(0.1, now + 0.1);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start(now + 0.1);
+        osc2.stop(now + 0.2);
+      }
+      
+      bgmStep++;
+    } catch(e) {}
+  }, 300); // 300ms 간격의 빠른 템포
+}
+
+function stopChaseBGM() {
+  if (bgmInterval) {
+    clearInterval(bgmInterval);
+    bgmInterval = null;
+  }
 }
 
 const TILE_SIZE = 40;
@@ -382,11 +445,11 @@ function generateMap() {
     let row = [];
     for(let c=0; c<mapSize; c++) {
       if(r===0 || r===mapSize-1 || c===0 || c===mapSize-1) {
-        row.push(1); // 벽
+        row.push(1);
       } else if(r % 4 === 0 && c % 4 === 0 && Math.random() > 0.25) {
-        row.push(1); // 장애물 벽
+        row.push(1);
       } else {
-        row.push(0); // 바닥
+        row.push(0);
         if(r > 4 && c > 4 && !(r === mapSize-2 && c === mapSize-2)) {
           freeTiles.push({r, c});
         }
@@ -395,11 +458,9 @@ function generateMap() {
     mapData.push(row);
   }
   
-  // 시작점 안전 영역
   mapData[1][1] = 0; mapData[1][2] = 0;
   mapData[2][1] = 0; mapData[2][2] = 0;
 
-  // 캐비닛(은신처) 배치
   let cabPositions = isMainGame ? [
     {r:3,c:3}, {r:8,c:15}, {r:15,c:8}, {r:20,c:20}, 
     {r:10,c:30}, {r:30,c:10}, {r:32,c:32}, {r:25,c:35}
@@ -411,7 +472,6 @@ function generateMap() {
     if(p.r < mapSize-1 && p.c < mapSize-1) mapData[p.r][p.c] = 2;
   });
 
-  // 열쇠 랜덤 생성 (본 게임 3개 / 튜토리얼 1개)
   for(let i=0; i<targetKeys; i++) {
     if(freeTiles.length > 0) {
       let randomIndex = Math.floor(Math.random() * freeTiles.length);
@@ -420,7 +480,6 @@ function generateMap() {
     }
   }
 
-  // 출구 Door
   mapData[mapSize-2][mapSize-2] = 4;
 }
 
@@ -454,6 +513,7 @@ function resetGameState() {
   isHidden = false; isChased = false; isQTEActive = false; gameEnded = false;
   stealthTimer = 0;
   keysPressed = {};
+  stopChaseBGM();
   
   generateMap();
 
@@ -622,6 +682,7 @@ function handleInteraction() {
     if(isChased || monsterDist < 280) {
       isHidden = true;
       isQTEActive = true;
+      startChaseBGM(); // 캐비닛 숨기기 QTE 진입 시 긴장감 BGM 유지
       
       mx = px + 15;
       my = py + 20;
@@ -641,6 +702,7 @@ function handleInteraction() {
     else {
       isHidden = true;
       isQTEActive = false;
+      stopChaseBGM(); // 안전 은신 시 BGM 중지
       document.getElementById('hideUI').classList.remove('hidden');
       document.getElementById('qteBox').classList.add('hidden');
       document.getElementById('safeBox').classList.remove('hidden');
@@ -682,6 +744,7 @@ function pickMonsterNewTarget() {
 function updateMonster() {
   if(isHidden && isQTEActive) {
     document.getElementById('alert').style.display = 'block';
+    startChaseBGM();
     return;
   }
 
@@ -691,8 +754,9 @@ function updateMonster() {
   if(dist < detectRange && !isHidden && stealthTimer <= 0) {
     isChased = true;
     document.getElementById('alert').style.display = 'block';
+    startChaseBGM(); // 괴물이 발견하고 추격할 때 긴박한 BGM 재생!
     
-    let speed = 2.9; // 튜토리얼과 동일한 속도
+    let speed = 2.9; 
     let angle = Math.atan2(py - my, px - mx);
     let vx = Math.cos(angle) * speed;
     let vy = Math.sin(angle) * speed;
@@ -720,6 +784,9 @@ function updateMonster() {
   else {
     isChased = false;
     document.getElementById('alert').style.display = 'none';
+    if(!isHidden) {
+      stopChaseBGM(); // 괴물이 시야에서 멀어지면 BGM 정지
+    }
     
     let tDist = Math.hypot(mTargetX - mx, mTargetY - my);
     if(tDist < 25) {
@@ -797,6 +864,7 @@ function updateHideLogic(dt) {
 function exitCabinetQTESuccess() {
   isQTEActive = false;
   isChased = false;
+  stopChaseBGM(); // 괴물이 따돌려지면 BGM 종료
   
   pickMonsterNewTarget();
   mx = mTargetX; 
@@ -805,7 +873,7 @@ function exitCabinetQTESuccess() {
 
   document.getElementById('qteBox').classList.add('hidden');
   document.getElementById('safeBox').classList.remove('hidden');
-  document.getElementById('mission').textContent = '괴물이 당신을 놓치고 떠났습니다! 원하는 때에 [E] 키를 눌러 나가세요.';
+  document.getElementById('mission').textContent = '괴물이 당신을 놓치고 떠났습니다! 원하는 때에 [E] 키를 나가세요.';
 }
 
 function exitCabinetSafe() {
@@ -816,6 +884,7 @@ function exitCabinetSafe() {
 
 function lose(reason) {
   gameEnded = true;
+  stopChaseBGM();
   document.getElementById('world').classList.add('hidden');
   document.getElementById('hideUI').classList.add('hidden');
   document.getElementById('gameover').classList.remove('hidden');
@@ -824,6 +893,7 @@ function lose(reason) {
 
 function win() {
   gameEnded = true;
+  stopChaseBGM();
   document.getElementById('world').classList.add('hidden');
   document.getElementById('winScreen').classList.remove('hidden');
   
