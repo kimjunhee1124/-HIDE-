@@ -120,9 +120,20 @@ body{
   display:flex; flex-direction:column; align-items:center; justify-content:center;
 }
 
+/* 타이머 게이지 바 */
+#gaugeContainer{
+  width:260px; height:16px; background:#1a1a1a; border:2px solid #e74c3c;
+  border-radius:8px; margin:10px auto 15px auto; overflow:hidden;
+  box-shadow:0 0 10px rgba(231, 76, 60, 0.5);
+}
+#gaugeBar{
+  width:100%; height:100%; background:linear-gradient(90deg, #e74c3c, #ff6b6b);
+  transition: width 0.1s linear;
+}
+
 #keyDisplay{
-  width:90px; height:90px; border:4px solid #e74c3c; background:rgba(22, 25, 32, 0.9);
-  display:flex; align-items:center; justify-content:center; font-size:48px; font-weight:bold; margin:15px auto;
+  width:85px; height:85px; border:4px solid #e74c3c; background:rgba(22, 25, 32, 0.9);
+  display:flex; align-items:center; justify-content:center; font-size:48px; font-weight:bold; margin:10px auto;
   box-shadow:0 0 20px rgba(231, 76, 60, 0.6); color:#fff;
 }
 
@@ -181,12 +192,17 @@ body{
   <!-- 숨기 UI -->
   <div id="hideUI" class="hidden">
     <div id="qteBox" style="text-align:center;">
-      <h2 id="hideTitle" style="color:#e74c3c; margin:0 0 10px 0; text-shadow:2px 2px #000;">⚠️ 괴물이 쫓아왔습니다! 숨소리를 참으세요!</h2>
-      <p id="hideSub" style="color:#bdc3c7; margin:0; text-shadow:1px 1px #000;">화면에 표시되는 방향키를 빠르게 누르세요!</p>
+      <h2 id="hideTitle" style="color:#e74c3c; margin:0 0 10px 0; text-shadow:2px 2px #000;">⚠️ 괴물이 바로 앞에 있습니다! 숨소리를 참으세요!</h2>
+      <p id="hideSub" style="color:#bdc3c7; margin:0; text-shadow:1px 1px #000;">게이지가 다 떨어지기 전에 알맞은 키를 누르세요!</p>
+      
+      <div id="gaugeContainer">
+        <div id="gaugeBar"></div>
+      </div>
+
       <div id="keyDisplay">W</div>
-      <div style="font-size:16px; color:#ddd; margin-bottom:5px; text-shadow:1px 1px #000;">성공까지 남은 횟수: <b id="reqCount" style="color:#f1c40f;">5</b>회</div>
-      <div id="timer" style="font-size:22px; color:#e74c3c; text-shadow:1px 1px #000; font-weight:bold;">제한시간: 6.0s</div>
+      <div style="font-size:16px; color:#ddd; margin-top:5px; text-shadow:1px 1px #000;">남은 횟수: <b id="reqCount" style="color:#f1c40f;">5</b>회</div>
     </div>
+    
     <div id="safeBox" class="hidden" style="text-align:center;">
       <h2 style="color:#2ecc71; margin:0 0 10px 0; text-shadow:2px 2px #000;">🤫 안전하게 은신 중입니다...</h2>
       <p style="color:#bdc3c7; margin:0; text-shadow:1px 1px #000;">괴물은 당신을 인식하지 못합니다. 밖으로 나가려면 <b>[E]</b> 키를 누르세요.</p>
@@ -212,6 +228,7 @@ body{
 <script>
 const TILE_SIZE = 40;
 const MAP_SIZE = 50;
+const MAX_HIDE_TIME = 6.0;
 
 const maleSVG = `
 <svg viewBox="0 0 16 20" xmlns="http://www.w3.org/2000/svg">
@@ -333,7 +350,7 @@ let keysPressed = {};
 
 let stealthTimer = 0;
 let targetKey = 'W';
-let hideTimer = 6.0;
+let hideTimer = MAX_HIDE_TIME;
 let requiredPresses = 5;
 
 let mTargetX = 800, mTargetY = 800;
@@ -411,7 +428,7 @@ function handleInteraction() {
   const pRow = Math.floor(py / TILE_SIZE);
   const tileType = mapData[pRow][pCol];
 
-  // 은신 중일 때 나가기
+  // 은신 중일 때 나가기 (QTE 진행 중이 아닐 때만 가능)
   if(isHidden) {
     if(!isQTEActive) {
       exitCabinetSafe();
@@ -427,14 +444,19 @@ function handleInteraction() {
     if(isChased || monsterDist < 260) {
       isHidden = true;
       isQTEActive = true;
+      
+      // 괴물을 캐비닛 바로 앞으로 이동시켜 서성이게 함
+      mx = px + 15;
+      my = py + 20;
+
       document.getElementById('hideUI').classList.remove('hidden');
       document.getElementById('qteBox').classList.remove('hidden');
       document.getElementById('safeBox').classList.add('hidden');
       
-      hideTimer = 6.0;
+      hideTimer = MAX_HIDE_TIME;
       requiredPresses = 5;
       document.getElementById('reqCount').textContent = requiredPresses;
-      document.getElementById('timer').textContent = '제한시간: 6.0s';
+      document.getElementById('gaugeBar').style.width = '100%';
       nextHideKey();
     } 
     // 평소에 안전하게 숨기
@@ -466,6 +488,12 @@ function pickMonsterNewTarget() {
 }
 
 function updateMonster() {
+  // QTE 미니게임 진행 중에는 괴물이 캐비닛 앞에서 서성임 (위치 고정)
+  if(isHidden && isQTEActive) {
+    document.getElementById('alert').style.display = 'block';
+    return;
+  }
+
   let dist = Math.hypot(px - mx, py - my);
   
   // 괴물 감지 및 추격
@@ -548,25 +576,29 @@ function updateHideLogic(dt) {
   if(!isQTEActive) return;
   
   hideTimer -= dt;
-  document.getElementById('timer').textContent = '제한시간: ' + Math.max(0, hideTimer).toFixed(1) + 's';
+  let percentage = Math.max(0, (hideTimer / MAX_HIDE_TIME) * 100);
+  document.getElementById('gaugeBar').style.width = percentage + '%';
   
   if(hideTimer <= 0) {
     lose("시간 내에 숨소리를 조절하지 못해 괴물에게 캐비닛이 열렸습니다!");
   }
 }
 
-// QTE 은신 성공 후 탈출
+// QTE 은신 성공 후 (일반 은신 상태로 전환)
 function exitCabinetQTESuccess() {
-  isHidden = false;
   isQTEActive = false;
   isChased = false;
-  document.getElementById('hideUI').classList.add('hidden');
   
+  // 괴물을 멀리 이동시키고 추격 해제
   pickMonsterNewTarget();
-  mx = mTargetX; my = mTargetY;
-  stealthTimer = 1.5;
-  
-  document.getElementById('mission').textContent = '괴물이 당신을 놓치고 떠났습니다! 지금 이동하세요!';
+  mx = mTargetX; 
+  my = mTargetY;
+  stealthTimer = 2.0;
+
+  // QTE 상자를 숨기고 안전 은신 상자를 띄움
+  document.getElementById('qteBox').classList.add('hidden');
+  document.getElementById('safeBox').classList.remove('hidden');
+  document.getElementById('mission').textContent = '괴물이 당신을 놓치고 떠났습니다! 원하는 때에 [E] 키를 눌러 나가세요.';
 }
 
 // 안전 은신 탈출
