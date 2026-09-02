@@ -226,7 +226,7 @@ body{
 </div>
 
 <script>
-// --- Web Audio API 사운드 효과 ---
+// --- Web Audio API 사운드 효과 ('철-컥' 2단계 잠금음) ---
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playLockerSound() {
@@ -236,32 +236,32 @@ function playLockerSound() {
   
   const now = audioCtx.currentTime;
 
-  // 1. '철' - 쇠가 부딪히는 고주파 충격음
+  // 1. '철' - 쇠가 스치는 찰나의 높은 금속 마찰음
   const osc1 = audioCtx.createOscillator();
   const gain1 = audioCtx.createGain();
-  osc1.type = 'triangle';
-  osc1.frequency.setValueAtTime(320, now);
-  osc1.frequency.exponentialRampToValueAtTime(80, now + 0.08);
-  gain1.gain.setValueAtTime(0.7, now);
-  gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+  osc1.type = 'sawtooth';
+  osc1.frequency.setValueAtTime(800, now);
+  osc1.frequency.exponentialRampToValueAtTime(200, now + 0.06);
+  gain1.gain.setValueAtTime(0.4, now);
+  gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
   osc1.connect(gain1);
   gain1.connect(audioCtx.destination);
   osc1.start(now);
-  osc1.stop(now + 0.08);
+  osc1.stop(now + 0.06);
 
-  // 2. '컥' - 둔탁하게 닫히는 저음 충격
+  // 2. '컥' - 0.04초 뒤 묵직하게 걸려 잠기는 둔탁한 저음
   const osc2 = audioCtx.createOscillator();
   const gain2 = audioCtx.createGain();
-  osc2.type = 'square';
-  osc2.frequency.setValueAtTime(150, now + 0.05);
-  osc2.frequency.exponentialRampToValueAtTime(40, now + 0.18);
+  osc2.type = 'triangle';
+  osc2.frequency.setValueAtTime(180, now + 0.04);
+  osc2.frequency.exponentialRampToValueAtTime(30, now + 0.2);
   gain2.gain.setValueAtTime(0.0, now);
-  gain2.gain.setValueAtTime(0.8, now + 0.05);
-  gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+  gain2.gain.setValueAtTime(0.9, now + 0.04);
+  gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
   osc2.connect(gain2);
   gain2.connect(audioCtx.destination);
-  osc2.start(now + 0.05);
-  osc2.stop(now + 0.18);
+  osc2.start(now + 0.04);
+  osc2.stop(now + 0.2);
 }
 
 const TILE_SIZE = 40;
@@ -411,7 +411,6 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  // QTE 미니게임 입력 감지
   if(isHidden && isQTEActive && ['w','a','s','d'].includes(k)) {
     handleHideInput(k.toUpperCase());
   }
@@ -460,13 +459,11 @@ function updatePlayer() {
   }
 }
 
-// 상호작용 (E 키)
 function handleInteraction() {
   const pCol = Math.floor(px / TILE_SIZE);
   const pRow = Math.floor(py / TILE_SIZE);
   const tileType = mapData[pRow][pCol];
 
-  // 은신 중일 때 나가기
   if(isHidden) {
     if(!isQTEActive) {
       exitCabinetSafe();
@@ -474,18 +471,15 @@ function handleInteraction() {
     return;
   }
 
-  // 1. 캐비닛 은신
   if(tileType === 2) {
-    playLockerSound(); // 캐비닛에 들어갈 때 '철컥' 소리 재생
+    playLockerSound();
     
     let monsterDist = Math.hypot(px - mx, py - my);
     
-    // 추격 중이거나 괴물이 가까이 있을 때 숨기 (QTE 리듬 미니게임 실행)
     if(isChased || monsterDist < 260) {
       isHidden = true;
       isQTEActive = true;
       
-      // 괴물을 캐비닛 바로 앞으로 이동시켜 서성이게 함
       mx = px + 15;
       my = py + 20;
 
@@ -499,7 +493,6 @@ function handleInteraction() {
       document.getElementById('gaugeBar').style.width = '100%';
       nextHideKey();
     } 
-    // 평소에 안전하게 숨기
     else {
       isHidden = true;
       isQTEActive = false;
@@ -508,7 +501,6 @@ function handleInteraction() {
       document.getElementById('safeBox').classList.remove('hidden');
     }
   } 
-  // 2. 열쇠 획득
   else if(tileType === 3) {
     hasKey = true;
     mapData[pRow][pCol] = 0;
@@ -516,7 +508,6 @@ function handleInteraction() {
     document.getElementById('keyCount').textContent = '1';
     document.getElementById('mission').textContent = '열쇠를 획득했습니다! 출구로 탈출하세요!';
   }
-  // 3. 탈출
   else if(tileType === 4) {
     if(hasKey) win();
   }
@@ -528,7 +519,6 @@ function pickMonsterNewTarget() {
 }
 
 function updateMonster() {
-  // QTE 미니게임 진행 중에는 괴물이 캐비닛 앞에서 서성임 (위치 고정)
   if(isHidden && isQTEActive) {
     document.getElementById('alert').style.display = 'block';
     return;
@@ -536,7 +526,6 @@ function updateMonster() {
 
   let dist = Math.hypot(px - mx, py - my);
   
-  // 괴물 감지 및 추격
   if(dist < 260 && !isHidden && stealthTimer <= 0) {
     isChased = true;
     document.getElementById('alert').style.display = 'block';
@@ -550,7 +539,6 @@ function updateMonster() {
 
     if(dist < 28) lose("괴물에게 잡혔습니다!");
   } 
-  // 배회 (Patrol)
   else {
     isChased = false;
     document.getElementById('alert').style.display = 'none';
@@ -624,26 +612,22 @@ function updateHideLogic(dt) {
   }
 }
 
-// QTE 은신 성공 후 (일반 은신 상태로 전환)
 function exitCabinetQTESuccess() {
   isQTEActive = false;
   isChased = false;
   
-  // 괴물을 멀리 이동시키고 추격 해제
   pickMonsterNewTarget();
   mx = mTargetX; 
   my = mTargetY;
   stealthTimer = 2.0;
 
-  // QTE 상자를 숨기고 안전 은신 상자를 띄움
   document.getElementById('qteBox').classList.add('hidden');
   document.getElementById('safeBox').classList.remove('hidden');
   document.getElementById('mission').textContent = '괴물이 당신을 놓치고 떠났습니다! 원하는 때에 [E] 키를 눌러 나가세요.';
 }
 
-// 안전 은신 탈출
 function exitCabinetSafe() {
-  playLockerSound(); // 캐비닛에서 나올 때도 사운드 출력
+  playLockerSound();
   isHidden = false;
   document.getElementById('hideUI').classList.add('hidden');
 }
