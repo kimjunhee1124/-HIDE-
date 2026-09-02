@@ -186,9 +186,9 @@ body{
 
     <div id="tutorialNotice">
       <div class="notice-box">
-        <h2>📢 [튜토리얼 스테이지]</h2>
-        <p style="color:#f1c40f; font-weight:bold;">본 게임에 진입하기 전, 기본 조작과 은신 방법을 익히세요!</p>
-        <ul>
+        <h2 id="stageTitle">📢 [튜토리얼 스테이지]</h2>
+        <p style="color:#f1c40f; font-weight:bold;" id="stageDesc">본 게임에 진입하기 전, 기본 조작과 은신 방법을 익히세요!</p>
+        <ul id="stageGoals">
           <li><b>목표:</b> 랜덤 위치의 열쇠(🔑)를 찾으세요.</li>
           <li><b>은신 연습:</b> 괴물이 다가오면 캐비닛에 숨어 QTE 미션을 수행하세요.</li>
           <li><b>입장:</b> 열쇠로 우측 하단의 START 문을 열어 본 게임으로 향하세요.</li>
@@ -227,13 +227,13 @@ body{
   <div id="gameover" class="screen hidden">
     <h1 style="font-size:48px; color:#c0392b; text-shadow:3px 3px #000;">GAME OVER</h1>
     <p id="overReason" style="color:#a6a6a6;">괴물에게 붙잡혔습니다...</p>
-    <button class="bigbtn" onclick="location.reload()">다시 시작</button>
+    <button class="bigbtn" onclick="restartGame()">다시 시작</button>
   </div>
 
   <div id="winScreen" class="screen hidden">
     <h1 style="font-size:40px; color:#27ae60; text-shadow:3px 3px #000;">🎓 튜토리얼 클리어!</h1>
     <p style="color:#a6a6a6;">기본 생존 수칙을 모두 익혔습니다. 이제 본 게임으로 입장합니다...</p>
-    <button class="bigbtn" style="background:#27ae60; border-color:#2ecc71;" onclick="location.reload()">본 게임 시작하기</button>
+    <button class="bigbtn" style="background:#27ae60; border-color:#2ecc71;" onclick="startMainGame()">본 게임 시작하기</button>
   </div>
 
 </div>
@@ -332,6 +332,9 @@ const keySVG = `
 </svg>`;
 
 let mapData = [];
+let selectedGender = 'male';
+let isMainGame = false;
+
 let px = 100, py = 100;
 let mx = 11 * TILE_SIZE + 20, my = 11 * TILE_SIZE + 20;
 let hp = 3, hasKey = false;
@@ -408,7 +411,7 @@ function renderMap() {
       if(type === 1) tileClass = 'wall';
       else if(type === 2) tileClass = 'cab';
       else if(type === 3) { tileClass = 'key-item'; content = keySVG; }
-      else if(type === 4) { tileClass = 'door'; content = 'START'; }
+      else if(type === 4) { tileClass = 'door'; content = isMainGame ? 'EXIT' : 'START'; }
 
       html += `<div class="tile ${tileClass}" style="left:${c*TILE_SIZE}px; top:${r*TILE_SIZE}px;">${content}</div>`;
     }
@@ -416,13 +419,76 @@ function renderMap() {
   container.innerHTML = html;
 }
 
+function resetGameState() {
+  px = 100; py = 100;
+  mx = 11 * TILE_SIZE + 20; my = 11 * TILE_SIZE + 20;
+  hp = 3; hasKey = false;
+  isHidden = false; isChased = false; isQTEActive = false; gameEnded = false;
+  stealthTimer = 0;
+  keysPressed = {};
+  
+  document.getElementById('hp').textContent = hp;
+  document.getElementById('keyCount').textContent = '0';
+  document.getElementById('alert').style.display = 'none';
+  document.getElementById('hideUI').classList.add('hidden');
+  document.getElementById('gameover').classList.add('hidden');
+  document.getElementById('winScreen').classList.add('hidden');
+  
+  generateMap();
+  renderMap();
+}
+
 function startGame(type) {
+  if(type) selectedGender = type;
   playLockerSound();
+  
   document.getElementById('title').classList.add('hidden');
   document.getElementById('world').classList.remove('hidden');
-  document.getElementById('player').innerHTML = type === 'male' ? maleSVG : femaleSVG;
+  document.getElementById('player').innerHTML = selectedGender === 'male' ? maleSVG : femaleSVG;
   document.getElementById('monster').innerHTML = monsterSVG;
+  
+  resetGameState();
   pickMonsterNewTarget();
+  
+  isPaused = true;
+  document.getElementById('tutorialNotice').classList.remove('hidden');
+  
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+
+function startMainGame() {
+  isMainGame = true;
+  document.getElementById('stageTitle').textContent = "🔥 [본 게임 스테이지]";
+  document.getElementById('stageDesc').textContent = "괴물의 이동 속도가 빨라졌습니다! 열쇠를 찾아 탈출하세요!";
+  document.getElementById('stageGoals').innerHTML = `
+    <li><b>목표:</b> 학교 어딘가 숨겨진 열쇠(🔑)를 찾으세요.</li>
+    <li><b>생존:</b> 괴물의 시야를 피해 캐비닛에 숨으세요.</li>
+    <li><b>탈출:</b> 열쇠를 얻은 뒤 EXIT 문으로 빠져나가세요.</li>
+  `;
+  
+  document.getElementById('winScreen').classList.add('hidden');
+  document.getElementById('world').classList.remove('hidden');
+  
+  resetGameState();
+  pickMonsterNewTarget();
+  
+  isPaused = true;
+  document.getElementById('tutorialNotice').classList.remove('hidden');
+  
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+
+function restartGame() {
+  document.getElementById('gameover').classList.add('hidden');
+  document.getElementById('world').classList.remove('hidden');
+  
+  resetGameState();
+  pickMonsterNewTarget();
+  isPaused = false;
+  
+  lastTime = performance.now();
   requestAnimationFrame(gameLoop);
 }
 
@@ -433,7 +499,7 @@ function closeTutorial() {
 }
 
 document.addEventListener('keydown', e => {
-  if(isPaused) return;
+  if(isPaused || gameEnded) return;
 
   const k = e.key.toLowerCase();
   keysPressed[k] = true;
@@ -488,17 +554,19 @@ function updatePlayer() {
   const pRow = Math.floor(py / TILE_SIZE);
   const tileType = mapData[pRow][pCol];
 
+  const prefix = isMainGame ? '[본 게임]' : '[튜토리얼]';
+
   if(tileType === 2) {
     document.getElementById('mission').textContent = '[E] 키를 눌러 캐비닛에 숨으세요!';
   } else if(tileType === 3) {
     document.getElementById('mission').textContent = '[E] 키를 눌러 열쇠를 줍으세요!';
   } else if(tileType === 4) {
-    if(hasKey) document.getElementById('mission').textContent = '[E] 키를 눌러 본 게임 스타트 문으로 이동하세요!';
-    else document.getElementById('mission').textContent = '스타트 문입니다. 열쇠가 필요합니다!';
+    if(hasKey) document.getElementById('mission').textContent = isMainGame ? '[E] 탈출 문 열기!' : '[E] 본 게임 이동!';
+    else document.getElementById('mission').textContent = '문이 잠겨 있습니다. 열쇠가 필요합니다!';
   } else if(!hasKey) {
-    document.getElementById('mission').textContent = '[튜토리얼] 랜덤 위치의 열쇠를 찾으세요!';
+    document.getElementById('mission').textContent = `${prefix} 열쇠를 찾으세요!`;
   } else {
-    document.getElementById('mission').textContent = '[튜토리얼 완료 가능] START 문(우측 하단)으로 이동하세요!';
+    document.getElementById('mission').textContent = `${prefix} 문(우측 하단)으로 이동하세요!`;
   }
 }
 
@@ -549,7 +617,7 @@ function handleInteraction() {
     mapData[pRow][pCol] = 0;
     renderMap();
     document.getElementById('keyCount').textContent = '1';
-    document.getElementById('mission').textContent = '열쇠 획득! 스타트 문으로 이동하세요!';
+    document.getElementById('mission').textContent = '열쇠 획득! 출구로 이동하세요!';
   }
   else if(tileType === 4) {
     if(hasKey) win();
@@ -585,7 +653,7 @@ function updateMonster() {
     isChased = true;
     document.getElementById('alert').style.display = 'block';
     
-    let speed = 2.9;
+    let speed = isMainGame ? 3.3 : 2.9;
     let angle = Math.atan2(py - my, px - mx);
     let vx = Math.cos(angle) * speed;
     let vy = Math.sin(angle) * speed;
@@ -618,7 +686,7 @@ function updateMonster() {
     if(tDist < 25) {
       pickMonsterNewTarget();
     } else {
-      let speed = 1.8;
+      let speed = isMainGame ? 2.2 : 1.8;
       let angle = Math.atan2(mTargetY - my, mTargetX - mx);
       let vx = Math.cos(angle) * speed;
       let vy = Math.sin(angle) * speed;
@@ -718,7 +786,15 @@ function lose(reason) {
 function win() {
   gameEnded = true;
   document.getElementById('world').classList.add('hidden');
-  document.getElementById('winScreen').classList.remove('hidden');
+  if (!isMainGame) {
+    document.getElementById('winScreen').classList.remove('hidden');
+  } else {
+    document.getElementById('winScreen').classList.remove('hidden');
+    document.querySelector('#winScreen h1').textContent = "🏆 게임 최종 클리어!";
+    document.querySelector('#winScreen p').textContent = "괴물 피하기 성공! 무사히 학교를 탈출했습니다.";
+    document.querySelector('#winScreen button').textContent = "첫 화면으로 돌아가기";
+    document.querySelector('#winScreen button').onclick = function() { location.reload(); };
+  }
 }
 
 let lastTime = performance.now();
@@ -744,11 +820,8 @@ function gameLoop(now) {
   requestAnimationFrame(gameLoop);
 }
 
-// DOM 로드가 완료된 후에 맵 생성 및 프리뷰 설정 진행
 window.addEventListener('DOMContentLoaded', () => {
   initPreviews();
-  generateMap();
-  renderMap();
 });
 </script>
 </body>
