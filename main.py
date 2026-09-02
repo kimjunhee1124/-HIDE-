@@ -23,20 +23,27 @@ body{
 
 #map-container{
   position:absolute; top:0; left:0;
-  width:1000px; height:1000px;
   background:#323741;
 }
 
 .tile{position:absolute; width:40px; height:40px; box-sizing:border-box; image-rendering:pixelated;}
+/* 튜토리얼 어두운 바닥 */
+.floor-tut{
+  background: #3a3f4b;
+  border-right:1px solid #303540;
+  border-bottom:1px solid #303540;
+}
+/* 본 게임 하얀색 타일 바닥 */
+.floor-main{
+  background: #e2e8f0;
+  border-right:1px solid #cbd5e1;
+  border-bottom:1px solid #cbd5e1;
+}
+
 .wall{
   background:#1a1d24; 
   border:3px solid #0d0e12; 
   box-shadow:inset 2px 2px 0 #2a2f3a, inset -2px -2px 0 #121419;
-}
-.floor{
-  background: #3a3f4b;
-  border-right:1px solid #303540;
-  border-bottom:1px solid #303540;
 }
 
 .cab{
@@ -59,7 +66,7 @@ body{
   display:flex; align-items:center; justify-content:center;
 }
 .key-icon{
-  width:20px; height:20px;
+  width:22px; height:22px;
   animation: bounce 0.8s infinite alternate;
 }
 @keyframes bounce { from { transform:translateY(-2px); } to { transform:translateY(3px); } }
@@ -189,7 +196,7 @@ body{
         <h2 id="stageTitle">📢 [튜토리얼 스테이지]</h2>
         <p style="color:#f1c40f; font-weight:bold;" id="stageDesc">본 게임에 진입하기 전, 기본 조작과 은신 방법을 익히세요!</p>
         <ul id="stageGoals">
-          <li><b>목표:</b> 랜덤 위치의 열쇠(🔑)를 찾으세요.</li>
+          <li><b>목표:</b> 랜덤 위치의 열쇠(🔑 1개)를 찾으세요.</li>
           <li><b>은신 연습:</b> 괴물이 다가오면 캐비닛에 숨어 QTE 미션을 수행하세요.</li>
           <li><b>입장:</b> 열쇠로 우측 하단의 START 문을 열어 본 게임으로 향하세요.</li>
         </ul>
@@ -198,7 +205,7 @@ body{
     </div>
 
     <div id="hud">
-      <div class="panel">❤️ HP: <span id="hp">3</span> | 🔑 열쇠: <span id="keyCount">0</span>/1</div>
+      <div class="panel">❤️ HP: <span id="hp">3</span> | 🔑 열쇠: <span id="keyCount">0</span>/<span id="targetKeyCount">1</span></div>
       <div class="panel">상태: <span id="mission" style="color:#f1c40f;">[튜토리얼] 열쇠를 찾으세요!</span></div>
       <div class="panel" style="color:#aaa;">조작: WASD(이동) / E(상호작용)</div>
     </div>
@@ -231,9 +238,9 @@ body{
   </div>
 
   <div id="winScreen" class="screen hidden">
-    <h1 style="font-size:40px; color:#27ae60; text-shadow:3px 3px #000;">🎓 튜토리얼 클리어!</h1>
-    <p style="color:#a6a6a6;">기본 생존 수칙을 모두 익혔습니다. 이제 본 게임으로 입장합니다...</p>
-    <button class="bigbtn" style="background:#27ae60; border-color:#2ecc71;" onclick="startMainGame()">본 게임 시작하기</button>
+    <h1 id="winTitle" style="font-size:40px; color:#27ae60; text-shadow:3px 3px #000;">🎓 튜토리얼 클리어!</h1>
+    <p id="winDesc" style="color:#a6a6a6;">기본 생존 수칙을 모두 익혔습니다. 이제 본 게임으로 입장합니다...</p>
+    <button id="winBtn" class="bigbtn" style="background:#27ae60; border-color:#2ecc71;" onclick="startMainGame()">본 게임 시작하기</button>
   </div>
 
 </div>
@@ -270,8 +277,8 @@ function playLockerSound() {
 }
 
 const TILE_SIZE = 40;
-const MAP_SIZE = 25;
-const MAX_HIDE_TIME = 6.0;
+let mapSize = 25;
+let maxHideTime = 6.0;
 
 const maleSVG = `
 <svg viewBox="0 0 16 20" xmlns="http://www.w3.org/2000/svg">
@@ -337,14 +344,14 @@ let isMainGame = false;
 
 let px = 100, py = 100;
 let mx = 11 * TILE_SIZE + 20, my = 11 * TILE_SIZE + 20;
-let hp = 3, hasKey = false;
+let hp = 3, keyCount = 0, targetKeys = 1;
 let isHidden = false, isChased = false, isQTEActive = false, gameEnded = false;
 let isPaused = true;
 let keysPressed = {};
 
 let stealthTimer = 0;
 let targetKey = 'W';
-let hideTimer = MAX_HIDE_TIME;
+let hideTimer = 6.0;
 let requiredPresses = 5;
 
 let mTargetX = 11 * TILE_SIZE + 20, mTargetY = 11 * TILE_SIZE + 20;
@@ -357,19 +364,27 @@ function initPreviews() {
 }
 
 function generateMap() {
+  mapSize = isMainGame ? 40 : 25;
+  targetKeys = isMainGame ? 3 : 1;
+  maxHideTime = isMainGame ? 4.5 : 6.0;
+  
+  const mapContainer = document.getElementById('map-container');
+  mapContainer.style.width = (mapSize * TILE_SIZE) + 'px';
+  mapContainer.style.height = (mapSize * TILE_SIZE) + 'px';
+
   mapData = [];
   let freeTiles = [];
 
-  for(let r=0; r<MAP_SIZE; r++) {
+  for(let r=0; r<mapSize; r++) {
     let row = [];
-    for(let c=0; c<MAP_SIZE; c++) {
-      if(r===0 || r===MAP_SIZE-1 || c===0 || c===MAP_SIZE-1) {
-        row.push(1);
-      } else if(r % 4 === 0 && c % 4 === 0 && Math.random() > 0.3) {
-        row.push(1);
+    for(let c=0; c<mapSize; c++) {
+      if(r===0 || r===mapSize-1 || c===0 || c===mapSize-1) {
+        row.push(1); // 벽
+      } else if(r % 4 === 0 && c % 4 === 0 && Math.random() > 0.25) {
+        row.push(1); // 장애물 벽
       } else {
-        row.push(0);
-        if(r > 4 && c > 4 && !(r === MAP_SIZE-2 && c === MAP_SIZE-2)) {
+        row.push(0); // 바닥
+        if(r > 4 && c > 4 && !(r === mapSize-2 && c === mapSize-2)) {
           freeTiles.push({r, c});
         }
       }
@@ -377,35 +392,45 @@ function generateMap() {
     mapData.push(row);
   }
   
+  // 시작점 안전 영역
   mapData[1][1] = 0; mapData[1][2] = 0;
   mapData[2][1] = 0; mapData[2][2] = 0;
 
-  mapData[10][10] = 0; mapData[10][11] = 0; mapData[10][12] = 0;
-  mapData[11][10] = 0; mapData[11][11] = 0; mapData[11][12] = 0;
-  mapData[12][10] = 0; mapData[12][11] = 0; mapData[12][12] = 0;
+  // 캐비닛(은신처) 다수 배치
+  let cabPositions = isMainGame ? [
+    {r:3,c:3}, {r:8,c:15}, {r:15,c:8}, {r:20,c:20}, 
+    {r:10,c:30}, {r:30,c:10}, {r:32,c:32}, {r:25,c:35}
+  ] : [
+    {r:3,c:3}, {r:8,c:12}, {r:12,c:8}, {r:18,c:18}
+  ];
 
-  mapData[3][3] = 2;
-  mapData[8][12] = 2;
-  mapData[12][8] = 2;
-  mapData[18][18] = 2;
+  cabPositions.forEach(p => {
+    if(p.r < mapSize-1 && p.c < mapSize-1) mapData[p.r][p.c] = 2;
+  });
 
-  if(freeTiles.length > 0) {
-    let randomIndex = Math.floor(Math.random() * freeTiles.length);
-    let keyPos = freeTiles[randomIndex];
-    mapData[keyPos.r][keyPos.c] = 3;
+  // 열쇠 랜덤 생성 (본 게임 3개 / 튜토리얼 1개)
+  for(let i=0; i<targetKeys; i++) {
+    if(freeTiles.length > 0) {
+      let randomIndex = Math.floor(Math.random() * freeTiles.length);
+      let keyPos = freeTiles.splice(randomIndex, 1)[0];
+      mapData[keyPos.r][keyPos.c] = 3;
+    }
   }
 
-  mapData[MAP_SIZE-2][MAP_SIZE-2] = 4;
+  // 출구 Door
+  mapData[mapSize-2][mapSize-2] = 4;
 }
 
 function renderMap() {
   const container = document.getElementById('tiles');
   if(!container) return;
   let html = '';
-  for(let r=0; r<MAP_SIZE; r++) {
-    for(let c=0; c<MAP_SIZE; c++) {
+  const floorStyleClass = isMainGame ? 'floor-main' : 'floor-tut';
+
+  for(let r=0; r<mapSize; r++) {
+    for(let c=0; c<mapSize; c++) {
       const type = mapData[r][c];
-      let tileClass = 'floor';
+      let tileClass = floorStyleClass;
       let content = '';
 
       if(type === 1) tileClass = 'wall';
@@ -422,13 +447,14 @@ function renderMap() {
 function resetGameState() {
   px = 100; py = 100;
   mx = 11 * TILE_SIZE + 20; my = 11 * TILE_SIZE + 20;
-  hp = 3; hasKey = false;
+  hp = 3; keyCount = 0;
   isHidden = false; isChased = false; isQTEActive = false; gameEnded = false;
   stealthTimer = 0;
   keysPressed = {};
   
   document.getElementById('hp').textContent = hp;
-  document.getElementById('keyCount').textContent = '0';
+  document.getElementById('keyCount').textContent = keyCount;
+  document.getElementById('targetKeyCount').textContent = targetKeys;
   document.getElementById('alert').style.display = 'none';
   document.getElementById('hideUI').classList.add('hidden');
   document.getElementById('gameover').classList.add('hidden');
@@ -442,6 +468,7 @@ function startGame(type) {
   if(type) selectedGender = type;
   playLockerSound();
   
+  isMainGame = false;
   document.getElementById('title').classList.add('hidden');
   document.getElementById('world').classList.remove('hidden');
   document.getElementById('player').innerHTML = selectedGender === 'male' ? maleSVG : femaleSVG;
@@ -460,11 +487,12 @@ function startGame(type) {
 function startMainGame() {
   isMainGame = true;
   document.getElementById('stageTitle').textContent = "🔥 [본 게임 스테이지]";
-  document.getElementById('stageDesc').textContent = "괴물의 이동 속도가 빨라졌습니다! 열쇠를 찾아 탈출하세요!";
+  document.getElementById('stageDesc').textContent = "하얀 타일 복도의 거대해진 학교! 괴물의 추격을 피하세요!";
   document.getElementById('stageGoals').innerHTML = `
-    <li><b>목표:</b> 학교 어딘가 숨겨진 열쇠(🔑)를 찾으세요.</li>
-    <li><b>생존:</b> 괴물의 시야를 피해 캐비닛에 숨으세요.</li>
-    <li><b>탈출:</b> 열쇠를 얻은 뒤 EXIT 문으로 빠져나가세요.</li>
+    <li><b>맵 크기:</b> 40x40의 거대한 하얀색 학교 복도입니다.</li>
+    <li><b>목표:</b> 학교 어딘가 숨겨진 <b>열쇠 3개(🔑 0/3)</b>를 모두 수집하세요!</li>
+    <li><b>추격자:</b> 괴물의 속도와 감지력이 강화됩니다.</li>
+    <li><b>탈출:</b> 열쇠 3개를 모은 뒤 우측 하단의 EXIT 문을 열고 탈출하세요.</li>
   `;
   
   document.getElementById('winScreen').classList.add('hidden');
@@ -528,14 +556,14 @@ function isSolid(x, y) {
   for(let p of points) {
     let col = Math.floor(p.x / TILE_SIZE);
     let row = Math.floor(p.y / TILE_SIZE);
-    if(row < 0 || row >= MAP_SIZE || col < 0 || col >= MAP_SIZE) return true;
+    if(row < 0 || row >= mapSize || col < 0 || col >= mapSize) return true;
     if(mapData[row][col] === 1) return true;
   }
   return false;
 }
 
 function updatePlayer() {
-  let speed = 3.2;
+  let speed = 3.3;
   let dx = 0, dy = 0;
   if(keysPressed['w'] || keysPressed['arrowup']) dy -= 1;
   if(keysPressed['s'] || keysPressed['arrowdown']) dy += 1;
@@ -561,12 +589,12 @@ function updatePlayer() {
   } else if(tileType === 3) {
     document.getElementById('mission').textContent = '[E] 키를 눌러 열쇠를 줍으세요!';
   } else if(tileType === 4) {
-    if(hasKey) document.getElementById('mission').textContent = isMainGame ? '[E] 탈출 문 열기!' : '[E] 본 게임 이동!';
-    else document.getElementById('mission').textContent = '문이 잠겨 있습니다. 열쇠가 필요합니다!';
-  } else if(!hasKey) {
-    document.getElementById('mission').textContent = `${prefix} 열쇠를 찾으세요!`;
+    if(keyCount >= targetKeys) document.getElementById('mission').textContent = isMainGame ? '[E] 학교 탈출 문 열기!' : '[E] 본 게임 이동!';
+    else document.getElementById('mission').textContent = `문이 잠겨 있습니다. (열쇠 ${keyCount}/${targetKeys})`;
+  } else if(keyCount < targetKeys) {
+    document.getElementById('mission').textContent = `${prefix} 열쇠를 찾으세요! (${keyCount}/${targetKeys})`;
   } else {
-    document.getElementById('mission').textContent = `${prefix} 문(우측 하단)으로 이동하세요!`;
+    document.getElementById('mission').textContent = `${prefix} 탈출 문(우측 하단)으로 이동하세요!`;
   }
 }
 
@@ -587,7 +615,7 @@ function handleInteraction() {
     
     let monsterDist = Math.hypot(px - mx, py - my);
     
-    if(isChased || monsterDist < 260) {
+    if(isChased || monsterDist < 280) {
       isHidden = true;
       isQTEActive = true;
       
@@ -598,8 +626,8 @@ function handleInteraction() {
       document.getElementById('qteBox').classList.remove('hidden');
       document.getElementById('safeBox').classList.add('hidden');
       
-      hideTimer = MAX_HIDE_TIME;
-      requiredPresses = 5;
+      hideTimer = maxHideTime;
+      requiredPresses = isMainGame ? 6 : 5;
       document.getElementById('reqCount').textContent = requiredPresses;
       document.getElementById('gaugeBar').style.width = '100%';
       nextHideKey();
@@ -613,21 +641,25 @@ function handleInteraction() {
     }
   } 
   else if(tileType === 3) {
-    hasKey = true;
+    keyCount++;
     mapData[pRow][pCol] = 0;
     renderMap();
-    document.getElementById('keyCount').textContent = '1';
-    document.getElementById('mission').textContent = '열쇠 획득! 출구로 이동하세요!';
+    document.getElementById('keyCount').textContent = keyCount;
+    if(keyCount >= targetKeys) {
+      document.getElementById('mission').textContent = '모든 열쇠 획득! 출구 문으로 이동하세요!';
+    } else {
+      document.getElementById('mission').textContent = `열쇠 획득! (${keyCount}/${targetKeys})`;
+    }
   }
   else if(tileType === 4) {
-    if(hasKey) win();
+    if(keyCount >= targetKeys) win();
   }
 }
 
 function pickMonsterNewTarget() {
   let validTiles = [];
-  for(let r = 1; r < MAP_SIZE - 1; r++) {
-    for(let c = 1; c < MAP_SIZE - 1; c++) {
+  for(let r = 1; r < mapSize - 1; r++) {
+    for(let c = 1; c < mapSize - 1; c++) {
       if(mapData[r][c] === 0) {
         validTiles.push({r, c});
       }
@@ -648,12 +680,13 @@ function updateMonster() {
   }
 
   let dist = Math.hypot(px - mx, py - my);
+  let detectRange = isMainGame ? 320 : 260;
   
-  if(dist < 260 && !isHidden && stealthTimer <= 0) {
+  if(dist < detectRange && !isHidden && stealthTimer <= 0) {
     isChased = true;
     document.getElementById('alert').style.display = 'block';
     
-    let speed = isMainGame ? 3.3 : 2.9;
+    let speed = isMainGame ? 3.45 : 2.9;
     let angle = Math.atan2(py - my, px - mx);
     let vx = Math.cos(angle) * speed;
     let vy = Math.sin(angle) * speed;
@@ -686,7 +719,7 @@ function updateMonster() {
     if(tDist < 25) {
       pickMonsterNewTarget();
     } else {
-      let speed = isMainGame ? 2.2 : 1.8;
+      let speed = isMainGame ? 2.3 : 1.8;
       let angle = Math.atan2(mTargetY - my, mTargetX - mx);
       let vx = Math.cos(angle) * speed;
       let vy = Math.sin(angle) * speed;
@@ -747,7 +780,7 @@ function updateHideLogic(dt) {
   if(!isQTEActive) return;
   
   hideTimer -= dt;
-  let percentage = Math.max(0, (hideTimer / MAX_HIDE_TIME) * 100);
+  let percentage = Math.max(0, (hideTimer / maxHideTime) * 100);
   document.getElementById('gaugeBar').style.width = percentage + '%';
   
   if(hideTimer <= 0) {
@@ -786,14 +819,20 @@ function lose(reason) {
 function win() {
   gameEnded = true;
   document.getElementById('world').classList.add('hidden');
+  document.getElementById('winScreen').classList.remove('hidden');
+  
   if (!isMainGame) {
-    document.getElementById('winScreen').classList.remove('hidden');
+    document.getElementById('winTitle').textContent = "🎓 튜토리얼 클리어!";
+    document.getElementById('winDesc').textContent = "기본 생존 수칙을 모두 익혔습니다. 이제 본 게임으로 입장합니다...";
+    const btn = document.getElementById('winBtn');
+    btn.textContent = "본 게임 시작하기";
+    btn.onclick = function() { startMainGame(); };
   } else {
-    document.getElementById('winScreen').classList.remove('hidden');
-    document.querySelector('#winScreen h1').textContent = "🏆 게임 최종 클리어!";
-    document.querySelector('#winScreen p').textContent = "괴물 피하기 성공! 무사히 학교를 탈출했습니다.";
-    document.querySelector('#winScreen button').textContent = "첫 화면으로 돌아가기";
-    document.querySelector('#winScreen button').onclick = function() { location.reload(); };
+    document.getElementById('winTitle').textContent = "🏆 게임 최종 클리어!";
+    document.getElementById('winDesc').textContent = "축하합니다! 열쇠 3개를 모두 찾아 40x40 백색 타일 복도를 무사히 탈출했습니다!";
+    const btn = document.getElementById('winBtn');
+    btn.textContent = "첫 화면으로 돌아가기";
+    btn.onclick = function() { location.reload(); };
   }
 }
 
