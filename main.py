@@ -331,10 +331,28 @@ const keySVG = `
   <path d="M6 2 C3.8 2 2 3.8 2 6 C2 8.2 3.8 10 6 10 C7 10 7.9 9.6 8.5 9 L11 11.5 L11 13 L13 13 L13 11 L14 11 L14 9 L11.5 6.5 C11.9 5.9 12 5 12 4 C12 2 10 2 6 2 Z M6 4 C7.1 4 8 4.9 8 6 C8 7.1 7.1 8 6 8 C4.9 8 4 7.1 4 6 C4 4.9 4.9 4 6 4 Z" fill="#f1c40f"/>
 </svg>`;
 
-document.getElementById('mPrev').innerHTML = `<div class="sprite" style="position:relative">${maleSVG}</div>`;
-document.getElementById('fPrev').innerHTML = `<div class="sprite" style="position:relative">${femaleSVG}</div>`;
-
 let mapData = [];
+let px = 100, py = 100;
+let mx = 11 * TILE_SIZE + 20, my = 11 * TILE_SIZE + 20;
+let hp = 3, hasKey = false;
+let isHidden = false, isChased = false, isQTEActive = false, gameEnded = false;
+let isPaused = true;
+let keysPressed = {};
+
+let stealthTimer = 0;
+let targetKey = 'W';
+let hideTimer = MAX_HIDE_TIME;
+let requiredPresses = 5;
+
+let mTargetX = 11 * TILE_SIZE + 20, mTargetY = 11 * TILE_SIZE + 20;
+
+function initPreviews() {
+  const mPrev = document.getElementById('mPrev');
+  const fPrev = document.getElementById('fPrev');
+  if (mPrev) mPrev.innerHTML = `<div class="sprite" style="position:relative">${maleSVG}</div>`;
+  if (fPrev) fPrev.innerHTML = `<div class="sprite" style="position:relative">${femaleSVG}</div>`;
+}
+
 function generateMap() {
   mapData = [];
   let freeTiles = [];
@@ -356,11 +374,9 @@ function generateMap() {
     mapData.push(row);
   }
   
-  // 플레이어 스폰 주변 안전지대
   mapData[1][1] = 0; mapData[1][2] = 0;
   mapData[2][1] = 0; mapData[2][2] = 0;
 
-  // 괴물 전용 안전 출발 통로 (절대 벽이 들어설 수 없는 공간)
   mapData[10][10] = 0; mapData[10][11] = 0; mapData[10][12] = 0;
   mapData[11][10] = 0; mapData[11][11] = 0; mapData[11][12] = 0;
   mapData[12][10] = 0; mapData[12][11] = 0; mapData[12][12] = 0;
@@ -378,10 +394,10 @@ function generateMap() {
 
   mapData[MAP_SIZE-2][MAP_SIZE-2] = 4;
 }
-generateMap();
 
 function renderMap() {
   const container = document.getElementById('tiles');
+  if(!container) return;
   let html = '';
   for(let r=0; r<MAP_SIZE; r++) {
     for(let c=0; c<MAP_SIZE; c++) {
@@ -399,22 +415,6 @@ function renderMap() {
   }
   container.innerHTML = html;
 }
-renderMap();
-
-let px = 100, py = 100;
-// 괴물 시작 위치: 빈 공간이 확정된 (11, 11) 타일의 중심 좌표
-let mx = 11 * TILE_SIZE + 20, my = 11 * TILE_SIZE + 20;
-let hp = 3, hasKey = false;
-let isHidden = false, isChased = false, isQTEActive = false, gameEnded = false;
-let isPaused = true;
-let keysPressed = {};
-
-let stealthTimer = 0;
-let targetKey = 'W';
-let hideTimer = MAX_HIDE_TIME;
-let requiredPresses = 5;
-
-let mTargetX = 11 * TILE_SIZE + 20, mTargetY = 11 * TILE_SIZE + 20;
 
 function startGame(type) {
   playLockerSound();
@@ -450,7 +450,6 @@ document.addEventListener('keydown', e => {
 
 document.addEventListener('keyup', e => keysPressed[e.key.toLowerCase()] = false);
 
-// 사방 12px 범위를 검사하여 박스 충돌 판정
 function isSolid(x, y) {
   const r = 12;
   const points = [
@@ -582,7 +581,6 @@ function updateMonster() {
 
   let dist = Math.hypot(px - mx, py - my);
   
-  // 추격 상태
   if(dist < 260 && !isHidden && stealthTimer <= 0) {
     isChased = true;
     document.getElementById('alert').style.display = 'block';
@@ -603,7 +601,6 @@ function updateMonster() {
       movedY = true;
     }
 
-    // 완전히 막혔을 때 탈출(우회) 로직
     if(!movedX && !movedY) {
       if(!isSolid(mx + speed, my)) mx += speed;
       else if(!isSolid(mx - speed, my)) mx -= speed;
@@ -613,7 +610,6 @@ function updateMonster() {
 
     if(dist < 28) lose("괴물에게 붙잡혔습니다!");
   } 
-  // 배회(순찰) 상태
   else {
     isChased = false;
     document.getElementById('alert').style.display = 'none';
@@ -631,7 +627,6 @@ function updateMonster() {
       if(!isSolid(mx + vx, my)) { mx += vx; movedX = true; }
       if(!isSolid(mx, my + vy)) { my += vy; movedY = true; }
 
-      // 배회 도중 벽에 막히면 목표 지점을 새로 갱신
       if(!movedX && !movedY) {
         pickMonsterNewTarget();
       }
@@ -748,9 +743,16 @@ function gameLoop(now) {
 
   requestAnimationFrame(gameLoop);
 }
+
+// DOM 로드가 완료된 후에 맵 생성 및 프리뷰 설정 진행
+window.addEventListener('DOMContentLoaded', () => {
+  initPreviews();
+  generateMap();
+  renderMap();
+});
 </script>
 </body>
 </html>
 """
 
-components.html(GAME_HTML, height=700, scrolling=False)
+components.html(GAME_HTML, height=750, scrolling=False)
