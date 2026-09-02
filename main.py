@@ -23,7 +23,7 @@ body{
 
 #map-container{
   position:absolute; top:0; left:0;
-  width:2000px; height:2000px;
+  width:1000px; height:1000px;
   background:#323741;
 }
 
@@ -108,7 +108,6 @@ body{
   display:none; border:2px solid #000; box-shadow:3px 3px 0 #000;
 }
 
-/* 튜토리얼 가이드 팝업 */
 #tutorialNotice{
   position:absolute; z-index:90; inset:0; background:rgba(0,0,0,0.8);
   display:flex; align-items:center; justify-content:center;
@@ -185,15 +184,14 @@ body{
       <div id="monster" class="sprite"></div>
     </div>
 
-    <!-- 튜토리얼 안 내 팝업 -->
     <div id="tutorialNotice">
       <div class="notice-box">
         <h2>📢 [튜토리얼 스테이지]</h2>
-        <p style="color:#f1c40f; font-weight:bold;">본격적인 학교 탈출 전, 생존 법칙을 익히세요!</p>
+        <p style="color:#f1c40f; font-weight:bold;">축소된 맵에서 괴물과의 조우를 체험하고 탈출하세요!</p>
         <ul>
-          <li><b>목표:</b> 열쇠(🔑)를 찾아 문으로 가세요.</li>
-          <li><b>은신:</b> 괴물이 다가오면 캐비닛에 숨고, <b>QTE 미션</b>(키 입력)을 완수하세요.</li>
-          <li><b>본 게임 진입:</b> 문에 도착하면 본 게임이 시작됩니다.</li>
+          <li><b>목표:</b> 랜더머하게 배치된 열쇠(🔑)를 찾으세요.</li>
+          <li><b>은신 연습:</b> 괴물이 추격해오면 캐비닛에 숨어 QTE 미션을 수행하세요.</li>
+          <li><b>입장:</b> 열쇠로 우측 하단의 START 문을 열어 본 게임으로 향하세요.</li>
         </ul>
         <button class="bigbtn" style="background:#2980b9; border-color:#3498db;" onclick="closeTutorial()">이해했습니다 (시작)</button>
       </div>
@@ -274,7 +272,7 @@ function playLockerSound() {
 }
 
 const TILE_SIZE = 40;
-const MAP_SIZE = 50;
+const MAP_SIZE = 25; // 튜토리얼용 맵 크기 축소 (25x25)
 const MAX_HIDE_TIME = 6.0;
 
 const maleSVG = `
@@ -340,30 +338,44 @@ document.getElementById('fPrev').innerHTML = `<div class="sprite" style="positio
 
 let mapData = [];
 function generateMap() {
+  mapData = [];
+  let freeTiles = [];
+
   for(let r=0; r<MAP_SIZE; r++) {
     let row = [];
     for(let c=0; c<MAP_SIZE; c++) {
       if(r===0 || r===MAP_SIZE-1 || c===0 || c===MAP_SIZE-1) {
         row.push(1);
-      } else if(r % 5 === 0 && c % 5 === 0 && Math.random() > 0.2) {
+      } else if(r % 4 === 0 && c % 4 === 0 && Math.random() > 0.3) {
         row.push(1);
       } else {
         row.push(0);
+        // 플레이어/스타트문/괴물 초기 위치 주변 제외 후 빈 공간 수집
+        if(r > 4 && c > 4 && !(r === MAP_SIZE-2 && c === MAP_SIZE-2)) {
+          freeTiles.push({r, c});
+        }
       }
     }
     mapData.push(row);
   }
   
-  mapData[2][2] = 0;
-  mapData[4][4] = 2;
+  mapData[2][2] = 0; // 시작점 안전 확보
+  
+  // 캐비닛 배치
+  mapData[3][3] = 2;
+  mapData[8][12] = 2;
   mapData[12][8] = 2;
-  mapData[22][18] = 2;
-  mapData[35][10] = 2;
-  mapData[42][38] = 2;
-  mapData[18][42] = 2;
+  mapData[18][18] = 2;
 
-  mapData[44][44] = 3;
-  mapData[48][48] = 4;
+  // 랜덤 열쇠 위치 지정
+  if(freeTiles.length > 0) {
+    let randomIndex = Math.floor(Math.random() * freeTiles.length);
+    let keyPos = freeTiles[randomIndex];
+    mapData[keyPos.r][keyPos.c] = 3;
+  }
+
+  // 출구 문 배치 (23, 23 위치)
+  mapData[MAP_SIZE-2][MAP_SIZE-2] = 4;
 }
 generateMap();
 
@@ -389,7 +401,7 @@ function renderMap() {
 renderMap();
 
 let px = 100, py = 100;
-let mx = 800, my = 800;
+let mx = 500, my = 500; // 맵이 작아졌으므로 괴물 시작 위치 조정
 let hp = 3, hasKey = false;
 let isHidden = false, isChased = false, isQTEActive = false, gameEnded = false;
 let isPaused = true;
@@ -400,7 +412,7 @@ let targetKey = 'W';
 let hideTimer = MAX_HIDE_TIME;
 let requiredPresses = 5;
 
-let mTargetX = 800, mTargetY = 800;
+let mTargetX = 500, mTargetY = 500;
 
 function startGame(type) {
   playLockerSound();
@@ -471,9 +483,9 @@ function updatePlayer() {
     if(hasKey) document.getElementById('mission').textContent = '[E] 키를 눌러 본 게임 스타트 문으로 이동하세요!';
     else document.getElementById('mission').textContent = '스타트 문입니다. 열쇠가 필요합니다!';
   } else if(!hasKey) {
-    document.getElementById('mission').textContent = '[튜토리얼] 열쇠를 찾으세요!';
+    document.getElementById('mission').textContent = '[튜토리얼] 랜덤 위치의 열쇠를 찾으세요!';
   } else {
-    document.getElementById('mission').textContent = '[튜토리얼 완료 가능] 스타트 문(48,48)으로 이동하세요!';
+    document.getElementById('mission').textContent = '[튜토리얼 완료 가능] START 문(우측 하단)으로 이동하세요!';
   }
 }
 
@@ -548,7 +560,7 @@ function updateMonster() {
     isChased = true;
     document.getElementById('alert').style.display = 'block';
     
-    let speed = 3.35;
+    let speed = 3.1;
     let angle = Math.atan2(py - my, px - mx);
     let nx = mx + Math.cos(angle) * speed;
     let ny = my + Math.sin(angle) * speed;
