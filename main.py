@@ -103,7 +103,7 @@ body{
 
 #hud{
   position:absolute; z-index:40; left:15px; top:15px; right:15px;
-  display:flex; justify-space-between; pointer-events:none; gap:10px;
+  display:flex; justify-content:space-between; pointer-events:none; gap:10px;
 }
 .panel{background:rgba(10,12,16,0.85); border:2px solid #4a5260; padding:8px 14px; font-size:14px; border-radius:2px;}
 #alert{
@@ -112,23 +112,18 @@ body{
   display:none; border:2px solid #000; box-shadow:3px 3px 0 #000;
 }
 
-/* 캐비닛 내부 시야 */
+/* 캐비닛 내부 시야 (탑뷰가 흐릿하게 보이고 테두리가 어두움) */
 #hideUI{
   position:absolute; z-index:100; inset:0;
-  background: radial-gradient(circle, rgba(20, 25, 35, 0.85) 0%, rgba(5, 5, 8, 0.98) 100%);
-  border: 15px solid #1a1d24;
+  background: radial-gradient(circle, rgba(10, 15, 20, 0.4) 30%, rgba(0, 0, 0, 0.95) 90%);
+  backdrop-filter: blur(3px);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-}
-#hideUI::before{
-  content:""; position:absolute; inset:0;
-  background: repeating-linear-gradient(0deg, transparent, transparent 4px, rgba(0,0,0,0.3) 4px, rgba(0,0,0,0.3) 8px);
-  pointer-events:none;
 }
 
 #keyDisplay{
-  width:90px; height:90px; border:4px solid #e74c3c; background:#161920;
+  width:90px; height:90px; border:4px solid #e74c3c; background:rgba(22, 25, 32, 0.9);
   display:flex; align-items:center; justify-content:center; font-size:48px; font-weight:bold; margin:15px;
-  box-shadow:0 0 15px rgba(231, 76, 60, 0.4); color:#fff;
+  box-shadow:0 0 20px rgba(231, 76, 60, 0.6); color:#fff;
 }
 
 #gameover, #winScreen{background:#0a0505; flex-direction:column;}
@@ -147,7 +142,7 @@ body{
   <!-- 타이틀 화면 -->
   <div id="title" class="screen">
     <div class="title">👻 HIDE : PIXEL SCHOOL</div>
-    <div class="sub">괴물이 당신보다 빠릅니다! 캐비닛에 숨어 따돌리세요!</div>
+    <div class="sub">괴물이 당신보다 미세하게 빠릅니다! 캐비닛을 활용하세요!</div>
     
     <div class="controls-box">
       <div style="font-size:16px; font-weight:bold; margin-bottom:6px; color:#fff;">🎮 조작 안내</div>
@@ -180,16 +175,16 @@ body{
       <div class="panel">상태: <span id="mission" style="color:#f1c40f;">열쇠를 찾고 출구로 탈출하세요!</span></div>
       <div class="panel" style="color:#aaa;">조작: WASD(이동) / E(상호작용)</div>
     </div>
-    <div id="alert">! 경고: 괴물이 빠른 속도로 추격 중 !</div>
+    <div id="alert">! 경고: 괴물이 추격 중 !</div>
   </div>
 
   <!-- 숨기 UI -->
   <div id="hideUI" class="hidden">
-    <h2 id="hideTitle" style="color:#e74c3c; margin:0 0 10px 0;">👀 괴물이 캐비닛 앞을 기웃거립니다!</h2>
-    <p id="hideSub" style="color:#bdc3c7; margin:0;">숨소리를 죽이세요! 지정된 키를 빠르게 누르세요!</p>
+    <h2 id="hideTitle" style="color:#e74c3c; margin:0 0 10px 0; text-shadow:2px 2px #000;">👀 괴물이 주변을 서성입니다...</h2>
+    <p id="hideSub" style="color:#bdc3c7; margin:0; text-shadow:1px 1px #000;">숨소리를 죽이세요! 화면에 나오는 키를 누르세요!</p>
     <div id="keyDisplay">W</div>
-    <div style="font-size:16px; color:#aaa; margin-bottom:5px;">성공까지 남은 횟수: <b id="reqCount" style="color:#fff;">5</b>회</div>
-    <div id="timer" style="font-size:22px; color:#e74c3c;">제한시간: 6.0s</div>
+    <div style="font-size:16px; color:#ddd; margin-bottom:5px; text-shadow:1px 1px #000;">성공까지 남은 횟수: <b id="reqCount" style="color:#f1c40f;">5</b>회</div>
+    <div id="timer" style="font-size:22px; color:#e74c3c; text-shadow:1px 1px #000;">제한시간: 6.0s</div>
   </div>
 
   <!-- 게임 오버 / 클리어 -->
@@ -330,6 +325,8 @@ let hp = 3, hasKey = false;
 let isHidden = false, gameEnded = false;
 let keysPressed = {};
 
+// 은신 및 안전 스텔스 시간 제어
+let stealthTimer = 0;
 let targetKey = 'W';
 let hideTimer = 6.0;
 let requiredPresses = 5;
@@ -358,7 +355,7 @@ function isSolid(x, y) {
 }
 
 function updatePlayer() {
-  let speed = 3.2;
+  let speed = 3.2; // 플레이어 이동 속도
   let dx = 0, dy = 0;
   if(keysPressed['w'] || keysPressed['arrowup']) dy -= 1;
   if(keysPressed['s'] || keysPressed['arrowdown']) dy += 1;
@@ -373,7 +370,7 @@ function updatePlayer() {
   if(!isSolid(nx, py)) px = nx;
   if(!isSolid(px, ny)) py = ny;
 
-  // 위치 기반 상호작용 안내 업데이트
+  // 위치 기반 UI 안내
   const pCol = Math.floor(px / TILE_SIZE);
   const pRow = Math.floor(py / TILE_SIZE);
   const tileType = mapData[pRow][pCol];
@@ -392,7 +389,7 @@ function updatePlayer() {
   }
 }
 
-// 통합 상호작용 처리 (E 키 입력 시)
+// E 키 통합 상호작용
 function handleInteraction() {
   if(isHidden) return;
 
@@ -403,21 +400,23 @@ function handleInteraction() {
   // 1. 캐비닛 은신
   if(tileType === 2) {
     let monsterDist = Math.hypot(px - mx, py - my);
-    if(monsterDist > 250) {
-      mx = Math.max(100, mx - 400);
-      my = Math.max(100, my - 400);
-      document.getElementById('mission').textContent = '괴물이 당신을 놓치고 지나갔습니다.';
+    
+    // 먼 거리에서 숨었을 때: 괴물이 다른 곳으로 떠남
+    if(monsterDist > 280) {
+      relocateMonsterFar();
+      document.getElementById('mission').textContent = '괴물이 당신을 놓치고 멀리 떠났습니다.';
       return;
     }
+
+    // 추격 중에 숨었을 때: 미니게임 시작 (탑뷰 유지)
     isHidden = true;
-    document.getElementById('world').classList.add('hidden');
     document.getElementById('hideUI').classList.remove('hidden');
     hideTimer = 6.0;
     requiredPresses = 5;
     document.getElementById('reqCount').textContent = requiredPresses;
     nextHideKey();
   } 
-  // 2. 열쇠 줍기
+  // 2. 열쇠 획득
   else if(tileType === 3) {
     hasKey = true;
     mapData[pRow][pCol] = 0;
@@ -425,17 +424,29 @@ function handleInteraction() {
     document.getElementById('keyCount').textContent = '1';
     document.getElementById('mission').textContent = '열쇠를 획득했습니다! 출구로 탈출하세요!';
   }
-  // 3. 출구 탈출
+  // 3. 탈출
   else if(tileType === 4) {
     if(hasKey) win();
   }
 }
 
+function relocateMonsterFar() {
+  // 괴물을 플레이어로부터 최소 600px 이상 떨어진 위치로 재배치
+  let newX = px + (Math.random() > 0.5 ? 600 : -600);
+  let newY = py + (Math.random() > 0.5 ? 600 : -600);
+  mx = Math.max(120, Math.min(1880, newX));
+  my = Math.max(120, Math.min(1880, newY));
+}
+
 function updateMonster() {
   let dist = Math.hypot(px - mx, py - my);
-  if(dist < 450 && !isHidden) {
+  
+  // 감지 범위 및 은신/스텔스 상태 체크
+  if(dist < 450 && !isHidden && stealthTimer <= 0) {
     document.getElementById('alert').style.display = 'block';
-    let speed = 3.6;
+    
+    // 괴물 속도를 플레이어(3.2)보다 미세하게 빠른 3.35로 설정
+    let speed = 3.35; 
     let angle = Math.atan2(py - my, px - mx);
     let nx = mx + Math.cos(angle) * speed;
     let ny = my + Math.sin(angle) * speed;
@@ -497,13 +508,16 @@ function updateHideLogic(dt) {
   }
 }
 
+// 은신 성공 후 나오기
 function exitCabinetSuccess() {
   isHidden = false;
   document.getElementById('hideUI').classList.add('hidden');
-  document.getElementById('world').classList.remove('hidden');
-  mx = Math.max(100, mx - 500);
-  my = Math.max(100, my - 500);
-  document.getElementById('mission').textContent = '괴물이 포기하고 떠났습니다!';
+  
+  // 안전 확보: 괴물을 멀리 이동시키고 1.5초간 안전 스텔스 부여
+  relocateMonsterFar();
+  stealthTimer = 1.5;
+  
+  document.getElementById('mission').textContent = '괴물이 포기하고 멀리 떠났습니다! 지금 탈출하세요!';
 }
 
 function lose(reason) {
@@ -526,12 +540,18 @@ function gameLoop(now) {
   let dt = (now - lastTime) / 1000;
   lastTime = now;
 
+  if(stealthTimer > 0) stealthTimer -= dt;
+
   if(!isHidden) {
     updatePlayer();
     updateMonster();
     updateCamera();
     draw();
   } else {
+    // 은신 중에도 배경 탑뷰 화면 및 카메라 업데이트 지속
+    updateMonster();
+    updateCamera();
+    draw();
     updateHideLogic(dt);
   }
 
