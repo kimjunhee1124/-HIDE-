@@ -112,7 +112,7 @@ body{
   display:none; border:2px solid #000; box-shadow:3px 3px 0 #000;
 }
 
-/* 캐비닛 내부 시야 (탑뷰 유지 + 테두리 암전) */
+/* 캐비닛 내부 시야 */
 #hideUI{
   position:absolute; z-index:100; inset:0;
   background: radial-gradient(circle, rgba(10, 15, 20, 0.3) 30%, rgba(0, 0, 0, 0.95) 90%);
@@ -226,6 +226,44 @@ body{
 </div>
 
 <script>
+// --- Web Audio API 사운드 효과 ---
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playLockerSound() {
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  
+  const now = audioCtx.currentTime;
+
+  // 1. '철' - 쇠가 부딪히는 고주파 충격음
+  const osc1 = audioCtx.createOscillator();
+  const gain1 = audioCtx.createGain();
+  osc1.type = 'triangle';
+  osc1.frequency.setValueAtTime(320, now);
+  osc1.frequency.exponentialRampToValueAtTime(80, now + 0.08);
+  gain1.gain.setValueAtTime(0.7, now);
+  gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+  osc1.connect(gain1);
+  gain1.connect(audioCtx.destination);
+  osc1.start(now);
+  osc1.stop(now + 0.08);
+
+  // 2. '컥' - 둔탁하게 닫히는 저음 충격
+  const osc2 = audioCtx.createOscillator();
+  const gain2 = audioCtx.createGain();
+  osc2.type = 'square';
+  osc2.frequency.setValueAtTime(150, now + 0.05);
+  osc2.frequency.exponentialRampToValueAtTime(40, now + 0.18);
+  gain2.gain.setValueAtTime(0.0, now);
+  gain2.gain.setValueAtTime(0.8, now + 0.05);
+  gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+  osc2.connect(gain2);
+  gain2.connect(audioCtx.destination);
+  osc2.start(now + 0.05);
+  osc2.stop(now + 0.18);
+}
+
 const TILE_SIZE = 40;
 const MAP_SIZE = 50;
 const MAX_HIDE_TIME = 6.0;
@@ -428,7 +466,7 @@ function handleInteraction() {
   const pRow = Math.floor(py / TILE_SIZE);
   const tileType = mapData[pRow][pCol];
 
-  // 은신 중일 때 나가기 (QTE 진행 중이 아닐 때만 가능)
+  // 은신 중일 때 나가기
   if(isHidden) {
     if(!isQTEActive) {
       exitCabinetSafe();
@@ -438,6 +476,8 @@ function handleInteraction() {
 
   // 1. 캐비닛 은신
   if(tileType === 2) {
+    playLockerSound(); // 캐비닛에 들어갈 때 '철컥' 소리 재생
+    
     let monsterDist = Math.hypot(px - mx, py - my);
     
     // 추격 중이거나 괴물이 가까이 있을 때 숨기 (QTE 리듬 미니게임 실행)
@@ -603,6 +643,7 @@ function exitCabinetQTESuccess() {
 
 // 안전 은신 탈출
 function exitCabinetSafe() {
+  playLockerSound(); // 캐비닛에서 나올 때도 사운드 출력
   isHidden = false;
   document.getElementById('hideUI').classList.add('hidden');
 }
