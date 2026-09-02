@@ -3,8 +3,11 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="HIDE - Pixel School EX", page_icon="👻", layout="wide")
 
-# 생성된 Catbox 링크 적용
-AUDIO_URL = "https://files.catbox.moe/rbqpjo.wav"
+# ==============================================================================
+# [안내] 아래 AUDIO_BASE64_DATA 쌍따옴표 안에 변환된 base64 텍스트를 넣으세요.
+# 예시: "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0Y..."
+# ==============================================================================
+AUDIO_BASE64_DATA = "data:audio/wav;base64,여기에_변환된_BASE64_문자열을_붙여넣으세요"
 
 GAME_HTML = f"""
 <!doctype html>
@@ -144,7 +147,7 @@ body{{
 </head>
 <body>
 
-<audio id="sfx-door" src="{AUDIO_URL}" preload="auto" crossorigin="anonymous"></audio>
+<audio id="sfx-door" src="{AUDIO_BASE64_DATA}" preload="auto"></audio>
 
 <div id="wrap">
 <div id="viewport">
@@ -223,7 +226,7 @@ body{{
 <script>
 function playLockerSound() {{
   const audio = document.getElementById('sfx-door');
-  if (audio) {{
+  if (audio && audio.src && !audio.src.endsWith('여기에_변환된_BASE64_문자열을_붙여넣으세요')) {{
     audio.currentTime = 0;
     audio.play().catch(err => console.log('Audio playback blocked:', err));
   }}
