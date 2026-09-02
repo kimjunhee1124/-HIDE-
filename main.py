@@ -164,7 +164,7 @@ body{
 
   <div id="title" class="screen">
     <div class="title">👻 HIDE : PIXEL SCHOOL</div>
-    <div class="sub">괴물이 당신보다 미세하게 빠릅니다! 캐비닛을 활용하세요!</div>
+    <div class="sub">괴물을 피해 열쇠를 모아 탈출하세요!</div>
     
     <div class="controls-box">
       <div style="font-size:16px; font-weight:bold; margin-bottom:6px; color:#fff;">🎮 조작 안내</div>
@@ -205,7 +205,7 @@ body{
     </div>
 
     <div id="hud">
-      <div class="panel">❤️ HP: <span id="hp">3</span> | 🔑 열쇠: <span id="keyCount">0</span>/<span id="targetKeyCount">1</span></div>
+      <div class="panel">🔑 열쇠: <span id="keyCount">0</span>/<span id="targetKeyCount">1</span></div>
       <div class="panel">상태: <span id="mission" style="color:#f1c40f;">[튜토리얼] 열쇠를 찾으세요!</span></div>
       <div class="panel" style="color:#aaa;">조작: WASD(이동) / E(상호작용)</div>
     </div>
@@ -214,15 +214,19 @@ body{
 
   <div id="hideUI" class="hidden">
     <div id="qteBox" style="text-align:center;">
-      <h2 id="hideTitle" style="color:#e74c3c; margin:0 0 10px 0; text-shadow:2px 2px #000;">⚠️ 괴물이 바로 앞에 있습니다! 숨소리를 참으세요!</h2>
-      <p id="hideSub" style="color:#bdc3c7; margin:0; text-shadow:1px 1px #000;">게이지가 다 떨어지기 전에 알맞은 키를 누르세요!</p>
+      <h2 id="hideTitle" style="color:#e74c3c; margin:0 0 6px 0; text-shadow:2px 2px #000;">⚠️ 괴물이 바로 앞에 있습니다! 숨소리를 참으세요!</h2>
+      <p id="hideSub" style="color:#bdc3c7; margin:0 0 10px 0; text-shadow:1px 1px #000;">게이지가 다 떨어지기 전에 표시되는 키를 누르세요!</p>
       
+      <div style="font-size:18px; color:#e74c3c; font-weight:bold; margin-bottom:8px;">
+        ❤️ 숨참기 기회 (실패 실수): <span id="qteHp" style="color:#fff; font-size:22px;">3</span> / 3
+      </div>
+
       <div id="gaugeContainer">
         <div id="gaugeBar"></div>
       </div>
 
       <div id="keyDisplay">W</div>
-      <div style="font-size:16px; color:#ddd; margin-top:5px; text-shadow:1px 1px #000;">남은 횟수: <b id="reqCount" style="color:#f1c40f;">5</b>회</div>
+      <div style="font-size:16px; color:#ddd; margin-top:5px; text-shadow:1px 1px #000;">남은 성공 횟수: <b id="reqCount" style="color:#f1c40f;">5</b>회</div>
     </div>
     
     <div id="safeBox" class="hidden" style="text-align:center;">
@@ -278,7 +282,7 @@ function playLockerSound() {
 
 const TILE_SIZE = 40;
 let mapSize = 25;
-let maxHideTime = 6.0;
+const maxHideTime = 6.0;
 
 const maleSVG = `
 <svg viewBox="0 0 16 20" xmlns="http://www.w3.org/2000/svg">
@@ -344,7 +348,7 @@ let isMainGame = false;
 
 let px = 100, py = 100;
 let mx = 11 * TILE_SIZE + 20, my = 11 * TILE_SIZE + 20;
-let hp = 3, keyCount = 0, targetKeys = 1;
+let qteHp = 3, keyCount = 0, targetKeys = 1;
 let isHidden = false, isChased = false, isQTEActive = false, gameEnded = false;
 let isPaused = true;
 let keysPressed = {};
@@ -366,7 +370,6 @@ function initPreviews() {
 function generateMap() {
   mapSize = isMainGame ? 40 : 25;
   targetKeys = isMainGame ? 3 : 1;
-  maxHideTime = isMainGame ? 4.5 : 6.0;
   
   const mapContainer = document.getElementById('map-container');
   mapContainer.style.width = (mapSize * TILE_SIZE) + 'px';
@@ -396,7 +399,7 @@ function generateMap() {
   mapData[1][1] = 0; mapData[1][2] = 0;
   mapData[2][1] = 0; mapData[2][2] = 0;
 
-  // 캐비닛(은신처) 다수 배치
+  // 캐비닛(은신처) 배치
   let cabPositions = isMainGame ? [
     {r:3,c:3}, {r:8,c:15}, {r:15,c:8}, {r:20,c:20}, 
     {r:10,c:30}, {r:30,c:10}, {r:32,c:32}, {r:25,c:35}
@@ -447,20 +450,21 @@ function renderMap() {
 function resetGameState() {
   px = 100; py = 100;
   mx = 11 * TILE_SIZE + 20; my = 11 * TILE_SIZE + 20;
-  hp = 3; keyCount = 0;
+  qteHp = 3; keyCount = 0;
   isHidden = false; isChased = false; isQTEActive = false; gameEnded = false;
   stealthTimer = 0;
   keysPressed = {};
   
-  document.getElementById('hp').textContent = hp;
+  generateMap();
+
   document.getElementById('keyCount').textContent = keyCount;
   document.getElementById('targetKeyCount').textContent = targetKeys;
+  document.getElementById('qteHp').textContent = qteHp;
   document.getElementById('alert').style.display = 'none';
   document.getElementById('hideUI').classList.add('hidden');
   document.getElementById('gameover').classList.add('hidden');
   document.getElementById('winScreen').classList.add('hidden');
   
-  generateMap();
   renderMap();
 }
 
@@ -491,7 +495,7 @@ function startMainGame() {
   document.getElementById('stageGoals').innerHTML = `
     <li><b>맵 크기:</b> 40x40의 거대한 하얀색 학교 복도입니다.</li>
     <li><b>목표:</b> 학교 어딘가 숨겨진 <b>열쇠 3개(🔑 0/3)</b>를 모두 수집하세요!</li>
-    <li><b>추격자:</b> 괴물의 속도와 감지력이 강화됩니다.</li>
+    <li><b>추격자:</b> 튜토리얼과 동일한 속도와 QTE 난이도입니다.</li>
     <li><b>탈출:</b> 열쇠 3개를 모은 뒤 우측 하단의 EXIT 문을 열고 탈출하세요.</li>
   `;
   
@@ -627,7 +631,9 @@ function handleInteraction() {
       document.getElementById('safeBox').classList.add('hidden');
       
       hideTimer = maxHideTime;
-      requiredPresses = isMainGame ? 6 : 5;
+      requiredPresses = 5;
+      qteHp = 3;
+      document.getElementById('qteHp').textContent = qteHp;
       document.getElementById('reqCount').textContent = requiredPresses;
       document.getElementById('gaugeBar').style.width = '100%';
       nextHideKey();
@@ -680,13 +686,13 @@ function updateMonster() {
   }
 
   let dist = Math.hypot(px - mx, py - my);
-  let detectRange = isMainGame ? 320 : 260;
+  let detectRange = 260;
   
   if(dist < detectRange && !isHidden && stealthTimer <= 0) {
     isChased = true;
     document.getElementById('alert').style.display = 'block';
     
-    let speed = isMainGame ? 3.45 : 2.9;
+    let speed = 2.9; // 튜토리얼과 동일한 속도
     let angle = Math.atan2(py - my, px - mx);
     let vx = Math.cos(angle) * speed;
     let vy = Math.sin(angle) * speed;
@@ -719,7 +725,7 @@ function updateMonster() {
     if(tDist < 25) {
       pickMonsterNewTarget();
     } else {
-      let speed = isMainGame ? 2.3 : 1.8;
+      let speed = 1.8;
       let angle = Math.atan2(mTargetY - my, mTargetX - mx);
       let vx = Math.cos(angle) * speed;
       let vy = Math.sin(angle) * speed;
@@ -770,9 +776,9 @@ function handleHideInput(k) {
     }
     nextHideKey();
   } else {
-    hp--;
-    document.getElementById('hp').textContent = hp;
-    if(hp <= 0) lose("캐비닛 안에서 소음을 내 잡히고 말았습니다!");
+    qteHp--;
+    document.getElementById('qteHp').textContent = qteHp;
+    if(qteHp <= 0) lose("캐비닛 안에서 소음을 내 잡히고 말았습니다!");
   }
 }
 
