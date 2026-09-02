@@ -122,7 +122,7 @@ body{
 
 #keyDisplay{
   width:90px; height:90px; border:4px solid #e74c3c; background:rgba(22, 25, 32, 0.9);
-  display:flex; align-items:center; justify-content:center; font-size:48px; font-weight:bold; margin:15px;
+  display:flex; align-items:center; justify-content:center; font-size:48px; font-weight:bold; margin:15px auto;
   box-shadow:0 0 20px rgba(231, 76, 60, 0.6); color:#fff;
 }
 
@@ -181,11 +181,11 @@ body{
   <!-- 숨기 UI -->
   <div id="hideUI" class="hidden">
     <div id="qteBox" style="text-align:center;">
-      <h2 id="hideTitle" style="color:#e74c3c; margin:0 0 10px 0; text-shadow:2px 2px #000;">👀 괴물이 캐비닛 앞을 기웃거립니다!</h2>
-      <p id="hideSub" style="color:#bdc3c7; margin:0; text-shadow:1px 1px #000;">숨소리를 죽이세요! 지정된 키를 입력하세요!</p>
+      <h2 id="hideTitle" style="color:#e74c3c; margin:0 0 10px 0; text-shadow:2px 2px #000;">⚠️ 괴물이 쫓아왔습니다! 숨소리를 참으세요!</h2>
+      <p id="hideSub" style="color:#bdc3c7; margin:0; text-shadow:1px 1px #000;">화면에 표시되는 방향키를 빠르게 누르세요!</p>
       <div id="keyDisplay">W</div>
       <div style="font-size:16px; color:#ddd; margin-bottom:5px; text-shadow:1px 1px #000;">성공까지 남은 횟수: <b id="reqCount" style="color:#f1c40f;">5</b>회</div>
-      <div id="timer" style="font-size:22px; color:#e74c3c; text-shadow:1px 1px #000;">제한시간: 6.0s</div>
+      <div id="timer" style="font-size:22px; color:#e74c3c; text-shadow:1px 1px #000; font-weight:bold;">제한시간: 6.0s</div>
     </div>
     <div id="safeBox" class="hidden" style="text-align:center;">
       <h2 style="color:#2ecc71; margin:0 0 10px 0; text-shadow:2px 2px #000;">🤫 안전하게 은신 중입니다...</h2>
@@ -328,7 +328,7 @@ renderMap();
 let px = 100, py = 100;
 let mx = 800, my = 800;
 let hp = 3, hasKey = false;
-let isHidden = false, isChased = false, gameEnded = false;
+let isHidden = false, isChased = false, isQTEActive = false, gameEnded = false;
 let keysPressed = {};
 
 let stealthTimer = 0;
@@ -336,7 +336,6 @@ let targetKey = 'W';
 let hideTimer = 6.0;
 let requiredPresses = 5;
 
-// 괴물 배회(Patrol) 목적지 변수
 let mTargetX = 800, mTargetY = 800;
 
 function startGame(type) {
@@ -351,9 +350,18 @@ function startGame(type) {
 document.addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   keysPressed[k] = true;
-  if(e.key === 'e' || e.key === 'E') handleInteraction();
-  if(isHidden && isChased && ['w','a','s','d'].includes(k)) handleHideInput(k.toUpperCase());
+
+  if(e.key === 'e' || e.key === 'E') {
+    handleInteraction();
+    return;
+  }
+
+  // QTE 미니게임 입력 감지
+  if(isHidden && isQTEActive && ['w','a','s','d'].includes(k)) {
+    handleHideInput(k.toUpperCase());
+  }
 });
+
 document.addEventListener('keyup', e => keysPressed[e.key.toLowerCase()] = false);
 
 function isSolid(x, y) {
@@ -397,15 +405,15 @@ function updatePlayer() {
   }
 }
 
-// 통합 상호작용
+// 상호작용 (E 키)
 function handleInteraction() {
   const pCol = Math.floor(px / TILE_SIZE);
   const pRow = Math.floor(py / TILE_SIZE);
   const tileType = mapData[pRow][pCol];
 
-  // 이미 은신 중일 때 (평소 은신 상황에서 나가기)
+  // 은신 중일 때 나가기
   if(isHidden) {
-    if(!isChased) {
+    if(!isQTEActive) {
       exitCabinetSafe();
     }
     return;
@@ -415,21 +423,24 @@ function handleInteraction() {
   if(tileType === 2) {
     let monsterDist = Math.hypot(px - mx, py - my);
     
-    // 추격 중일 때 숨기 (QTE 미니게임 실행)
-    if(isChased && monsterDist < 260) {
+    // 추격 중이거나 괴물이 가까이 있을 때 숨기 (QTE 리듬 미니게임 실행)
+    if(isChased || monsterDist < 260) {
       isHidden = true;
+      isQTEActive = true;
       document.getElementById('hideUI').classList.remove('hidden');
       document.getElementById('qteBox').classList.remove('hidden');
       document.getElementById('safeBox').classList.add('hidden');
+      
       hideTimer = 6.0;
       requiredPresses = 5;
       document.getElementById('reqCount').textContent = requiredPresses;
+      document.getElementById('timer').textContent = '제한시간: 6.0s';
       nextHideKey();
     } 
-    // 추격 중이 아닐 때 안전하게 숨기 (자유롭게 관찰 가능)
+    // 평소에 안전하게 숨기
     else {
       isHidden = true;
-      isChased = false;
+      isQTEActive = false;
       document.getElementById('hideUI').classList.remove('hidden');
       document.getElementById('qteBox').classList.add('hidden');
       document.getElementById('safeBox').classList.remove('hidden');
@@ -449,7 +460,6 @@ function handleInteraction() {
   }
 }
 
-// 괴물 무작위 목적지 선택 (순찰용)
 function pickMonsterNewTarget() {
   mTargetX = Math.floor(Math.random() * (MAP_SIZE - 4) + 2) * TILE_SIZE;
   mTargetY = Math.floor(Math.random() * (MAP_SIZE - 4) + 2) * TILE_SIZE;
@@ -458,12 +468,12 @@ function pickMonsterNewTarget() {
 function updateMonster() {
   let dist = Math.hypot(px - mx, py - my);
   
-  // 괴물 감지 거리 축소: 260px (화면에 괴물이 보일 때만 추격)
+  // 괴물 감지 및 추격
   if(dist < 260 && !isHidden && stealthTimer <= 0) {
     isChased = true;
     document.getElementById('alert').style.display = 'block';
     
-    let speed = 3.35; // 플레이어(3.2)보다 미세하게 빠름
+    let speed = 3.35;
     let angle = Math.atan2(py - my, px - mx);
     let nx = mx + Math.cos(angle) * speed;
     let ny = my + Math.sin(angle) * speed;
@@ -472,7 +482,7 @@ function updateMonster() {
 
     if(dist < 28) lose("괴물에게 잡혔습니다!");
   } 
-  // 평소 상태: 무작위 배회 (Patrol)
+  // 배회 (Patrol)
   else {
     isChased = false;
     document.getElementById('alert').style.display = 'none';
@@ -481,7 +491,7 @@ function updateMonster() {
     if(tDist < 30) {
       pickMonsterNewTarget();
     } else {
-      let speed = 1.8; // 배회 속도
+      let speed = 1.8;
       let angle = Math.atan2(mTargetY - my, mTargetX - mx);
       let nx = mx + Math.cos(angle) * speed;
       let ny = my + Math.sin(angle) * speed;
@@ -535,29 +545,31 @@ function handleHideInput(k) {
 }
 
 function updateHideLogic(dt) {
-  if(!isChased) return;
+  if(!isQTEActive) return;
+  
   hideTimer -= dt;
   document.getElementById('timer').textContent = '제한시간: ' + Math.max(0, hideTimer).toFixed(1) + 's';
+  
   if(hideTimer <= 0) {
-    lose("버티지 못하고 괴물에게 캐비닛이 열렸습니다!");
+    lose("시간 내에 숨소리를 조절하지 못해 괴물에게 캐비닛이 열렸습니다!");
   }
 }
 
 // QTE 은신 성공 후 탈출
 function exitCabinetQTESuccess() {
   isHidden = false;
+  isQTEActive = false;
   isChased = false;
   document.getElementById('hideUI').classList.add('hidden');
   
-  // 괴물 멀리 재배치 및 스텔스
   pickMonsterNewTarget();
   mx = mTargetX; my = mTargetY;
   stealthTimer = 1.5;
   
-  document.getElementById('mission').textContent = '괴물이 포기하고 떠났습니다! 안전할 때 이동하세요.';
+  document.getElementById('mission').textContent = '괴물이 당신을 놓치고 떠났습니다! 지금 이동하세요!';
 }
 
-// 평소 은신에서 그냥 나오기
+// 안전 은신 탈출
 function exitCabinetSafe() {
   isHidden = false;
   document.getElementById('hideUI').classList.add('hidden');
@@ -587,7 +599,7 @@ function gameLoop(now) {
 
   if(!isHidden) {
     updatePlayer();
-  } else if(isChased) {
+  } else if(isQTEActive) {
     updateHideLogic(dt);
   }
 
