@@ -3,151 +3,143 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="HIDE - Pixel School EX", page_icon="👻", layout="wide")
 
-# ==============================================================================
-# [안내] 아래 AUDIO_BASE64_DATA 쌍따옴표 안에 변환된 base64 텍스트를 넣으세요.
-# 예시: "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0Y..."
-# ==============================================================================
-AUDIO_BASE64_DATA = "data:audio/wav;base64,여기에_변환된_BASE64_문자열을_붙여넣으세요"
-
-GAME_HTML = f"""
+GAME_HTML = """
 <!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
 <style>
-*{{box-sizing:border-box}}
-body{{
+*{box-sizing:border-box}
+body{
   margin:0; background:#07080b; color:#fff; font-family:'Courier New', monospace;
   overflow:hidden; user-select:none;
-}}
-#wrap{{display:flex; justify-content:center; align-items:center; min-height:760px}}
-#viewport{{
+}
+#wrap{display:flex; justify-content:center; align-items:center; min-height:760px}
+#viewport{
   position:relative; width:1000px; height:650px;
   background:#0e1015; border:4px solid #2d333f; overflow:hidden;
   box-shadow:0 0 25px rgba(0,0,0,0.9);
-}}
+}
 
-#map-container{{
+#map-container{
   position:absolute; top:0; left:0;
   width:2000px; height:2000px;
   background:#323741;
-}}
+}
 
-.tile{{position:absolute; width:40px; height:40px; box-sizing:border-box; image-rendering:pixelated;}}
-.wall{{
+.tile{position:absolute; width:40px; height:40px; box-sizing:border-box; image-rendering:pixelated;}
+.wall{
   background:#1a1d24; 
   border:3px solid #0d0e12; 
   box-shadow:inset 2px 2px 0 #2a2f3a, inset -2px -2px 0 #121419;
-}}
-.floor{{
+}
+.floor{
   background: #3a3f4b;
   border-right:1px solid #303540;
   border-bottom:1px solid #303540;
-}}
+}
 
-.cab{{
+.cab{
   background:#5a626e; 
   border:3px solid #1e2229;
   box-shadow:inset 3px 3px 0 #7c8594, inset -3px -3px 0 #3a4049;
   position:absolute;
-}}
-.cab::before{{
+}
+.cab::before{
   content:""; position:absolute; left:6px; top:6px; right:6px; height:8px;
   background:#3e444d; border-bottom:2px solid #6f7785;
-}}
-.cab::after{{
+}
+.cab::after{
   content:""; position:absolute; right:6px; top:20px; width:4px; height:6px;
   background:#d0d7e1; box-shadow:0 1px 0 #111;
-}}
+}
 
-.key-item{{
+.key-item{
   background:transparent;
   display:flex; align-items:center; justify-content:center;
-}}
-.key-icon{{
+}
+.key-icon{
   width:20px; height:20px;
   animation: bounce 0.8s infinite alternate;
-}}
-@keyframes bounce {{ from {{ transform:translateY(-2px); }} to {{ transform:translateY(3px); }} }}
+}
+@keyframes bounce { from { transform:translateY(-2px); } to { transform:translateY(3px); } }
 
-.door{{
+.door{
   background:#8b2626; border:3px solid #3a0d0d; text-align:center; 
   line-height:34px; font-weight:bold; color:#ffb3b3; font-size:12px;
   box-shadow:inset 2px 2px 0 #ad3b3b;
-}}
+}
 
-.sprite{{
+.sprite{
   position:absolute; width:32px; height:42px; z-index:10;
   transform:translate(-50%, -50%); image-rendering:pixelated;
-}}
-.sprite svg{{width:32px; height:42px; shape-rendering:crispEdges;}}
-.shadow{{
+}
+.sprite svg{width:32px; height:42px; shape-rendering:crispEdges;}
+.shadow{
   position:absolute; width:26px; height:8px; border-radius:50%;
   background:rgba(0,0,0,0.5); transform:translate(-50%, -50%); z-index:5;
-}}
+}
 
-.screen{{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:50;}}
-.hidden{{display:none !important;}}
-#title{{flex-direction:column; background:#0b0c10;}}
-.title{{font-size:52px; letter-spacing:4px; text-shadow:4px 4px #8b0000; margin-bottom:10px; color:#f0f0f0;}}
-.sub{{color:#7a8391; margin-bottom:20px; font-size:15px;}}
-.controls-box{{
+.screen{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:50;}
+.hidden{display:none !important;}
+#title{flex-direction:column; background:#0b0c10;}
+.title{font-size:52px; letter-spacing:4px; text-shadow:4px 4px #8b0000; margin-bottom:10px; color:#f0f0f0;}
+.sub{color:#7a8391; margin-bottom:20px; font-size:15px;}
+.controls-box{
   background:#161920; border:2px solid #3a4150; padding:15px 25px; border-radius:8px;
   margin-bottom:20px; text-align:center; color:#2ecc71;
-}}
-.selects{{display:flex; gap:25px;}}
-.pick{{
+}
+.selects{display:flex; gap:25px;}
+.pick{
   width:180px; height:180px; background:#161920; border:3px solid #3a4150;
   cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
   transition: transform 0.1s;
-}}
-.pick:hover{{border-color:#fff; background:#202530; transform:translateY(-3px);}}
+}
+.pick:hover{border-color:#fff; background:#202530; transform:translateY(-3px);}
 
-#hud{{
+#hud{
   position:absolute; z-index:40; left:15px; top:15px; right:15px;
   display:flex; justify-content:space-between; pointer-events:none; gap:10px;
-}}
-.panel{{background:rgba(10,12,16,0.85); border:2px solid #4a5260; padding:8px 14px; font-size:14px; border-radius:2px;}}
-#alert{{
+}
+.panel{background:rgba(10,12,16,0.85); border:2px solid #4a5260; padding:8px 14px; font-size:14px; border-radius:2px;}
+#alert{
   position:absolute; z-index:40; left:50%; top:20px; transform:translateX(-50%);
   font-size:20px; background:#c0392b; color:#fff; padding:4px 16px; font-weight:bold;
   display:none; border:2px solid #000; box-shadow:3px 3px 0 #000;
-}}
+}
 
-#hideUI{{
+#hideUI{
   position:absolute; z-index:100; inset:0;
   background: radial-gradient(circle, rgba(10, 15, 20, 0.3) 30%, rgba(0, 0, 0, 0.95) 90%);
   backdrop-filter: blur(2px);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-}}
+}
 
-#gaugeContainer{{
+#gaugeContainer{
   width:260px; height:16px; background:#1a1a1a; border:2px solid #e74c3c;
   border-radius:8px; margin:10px auto 15px auto; overflow:hidden;
   box-shadow:0 0 10px rgba(231, 76, 60, 0.5);
-}}
-#gaugeBar{{
+}
+#gaugeBar{
   width:100%; height:100%; background:linear-gradient(90deg, #e74c3c, #ff6b6b);
   transition: width 0.1s linear;
-}}
+}
 
-#keyDisplay{{
+#keyDisplay{
   width:85px; height:85px; border:4px solid #e74c3c; background:rgba(22, 25, 32, 0.9);
   display:flex; align-items:center; justify-content:center; font-size:48px; font-weight:bold; margin:10px auto;
   box-shadow:0 0 20px rgba(231, 76, 60, 0.6); color:#fff;
-}}
+}
 
-#gameover, #winScreen{{background:#0a0505; flex-direction:column;}}
-.bigbtn{{
+#gameover, #winScreen{background:#0a0505; flex-direction:column;}
+.bigbtn{
   background:#962d22; color:#fff; border:2px solid #e74c3c; padding:10px 22px; 
   font-size:16px; font-family:inherit; cursor:pointer; margin-top:20px; box-shadow:4px 4px 0 #000;
-}}
-.bigbtn:hover{{background:#c0392b;}}
+}
+.bigbtn:hover{background:#c0392b;}
 </style>
 </head>
 <body>
-
-<audio id="sfx-door" src="{AUDIO_BASE64_DATA}" preload="auto"></audio>
 
 <div id="wrap">
 <div id="viewport">
@@ -224,13 +216,37 @@ body{{
 </div>
 
 <script>
-function playLockerSound() {{
-  const audio = document.getElementById('sfx-door');
-  if (audio && audio.src && !audio.src.endsWith('여기에_변환된_BASE64_문자열을_붙여넣으세요')) {{
-    audio.currentTime = 0;
-    audio.play().catch(err => console.log('Audio playback blocked:', err));
-  }}
-}}
+// Web Audio API를 사용한 자체 효과음 생성 시스템
+let audioCtx = null;
+
+function playLockerSound() {
+  try {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.15);
+
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.15);
+  } catch(e) {
+    console.log("Audio API error:", e);
+  }
+}
 
 const TILE_SIZE = 40;
 const MAP_SIZE = 50;
@@ -294,24 +310,24 @@ const keySVG = `
   <path d="M6 2 C3.8 2 2 3.8 2 6 C2 8.2 3.8 10 6 10 C7 10 7.9 9.6 8.5 9 L11 11.5 L11 13 L13 13 L13 11 L14 11 L14 9 L11.5 6.5 C11.9 5.9 12 5 12 4 C12 2 10 2 6 2 Z M6 4 C7.1 4 8 4.9 8 6 C8 7.1 7.1 8 6 8 C4.9 8 4 7.1 4 6 C4 4.9 4.9 4 6 4 Z" fill="#f1c40f"/>
 </svg>`;
 
-document.getElementById('mPrev').innerHTML = `<div class="sprite" style="position:relative">${{maleSVG}}</div>`;
-document.getElementById('fPrev').innerHTML = `<div class="sprite" style="position:relative">${{femaleSVG}}</div>`;
+document.getElementById('mPrev').innerHTML = `<div class="sprite" style="position:relative">${maleSVG}</div>`;
+document.getElementById('fPrev').innerHTML = `<div class="sprite" style="position:relative">${femaleSVG}</div>`;
 
 let mapData = [];
-function generateMap() {{
-  for(let r=0; r<MAP_SIZE; r++) {{
+function generateMap() {
+  for(let r=0; r<MAP_SIZE; r++) {
     let row = [];
-    for(let c=0; c<MAP_SIZE; c++) {{
-      if(r===0 || r===MAP_SIZE-1 || c===0 || c===MAP_SIZE-1) {{
+    for(let c=0; c<MAP_SIZE; c++) {
+      if(r===0 || r===MAP_SIZE-1 || c===0 || c===MAP_SIZE-1) {
         row.push(1);
-      }} else if(r % 5 === 0 && c % 5 === 0 && Math.random() > 0.2) {{
+      } else if(r % 5 === 0 && c % 5 === 0 && Math.random() > 0.2) {
         row.push(1);
-      }} else {{
+      } else {
         row.push(0);
-      }}
-    }}
+      }
+    }
     mapData.push(row);
-  }}
+  }
   
   mapData[2][2] = 0;
   mapData[4][4] = 2;
@@ -323,35 +339,35 @@ function generateMap() {{
 
   mapData[44][44] = 3;
   mapData[48][48] = 4;
-}}
+}
 generateMap();
 
-function renderMap() {{
+function renderMap() {
   const container = document.getElementById('tiles');
   let html = '';
-  for(let r=0; r<MAP_SIZE; r++) {{
-    for(let c=0; c<MAP_SIZE; c++) {{
+  for(let r=0; r<MAP_SIZE; r++) {
+    for(let c=0; c<MAP_SIZE; c++) {
       const type = mapData[r][c];
       let tileClass = 'floor';
       let content = '';
 
       if(type === 1) tileClass = 'wall';
       else if(type === 2) tileClass = 'cab';
-      else if(type === 3) {{ tileClass = 'key-item'; content = keySVG; }}
-      else if(type === 4) {{ tileClass = 'door'; content = 'EXIT'; }}
+      else if(type === 3) { tileClass = 'key-item'; content = keySVG; }
+      else if(type === 4) { tileClass = 'door'; content = 'EXIT'; }
 
-      html += `<div class="tile ${{tileClass}}" style="left:${{c*TILE_SIZE}}px; top:${{r*TILE_SIZE}}px;">${{content}}</div>`;
-    }}
-  }}
+      html += `<div class="tile ${tileClass}" style="left:${c*TILE_SIZE}px; top:${r*TILE_SIZE}px;">${content}</div>`;
+    }
+  }
   container.innerHTML = html;
-}}
+}
 renderMap();
 
 let px = 100, py = 100;
 let mx = 800, my = 800;
 let hp = 3, hasKey = false;
 let isHidden = false, isChased = false, isQTEActive = false, gameEnded = false;
-let keysPressed = {{}};
+let keysPressed = {};
 
 let stealthTimer = 0;
 let targetKey = 'W';
@@ -360,7 +376,7 @@ let requiredPresses = 5;
 
 let mTargetX = 800, mTargetY = 800;
 
-function startGame(type) {{
+function startGame(type) {
   playLockerSound();
   document.getElementById('title').classList.add('hidden');
   document.getElementById('world').classList.remove('hidden');
@@ -368,32 +384,32 @@ function startGame(type) {{
   document.getElementById('monster').innerHTML = monsterSVG;
   pickMonsterNewTarget();
   requestAnimationFrame(gameLoop);
-}}
+}
 
-document.addEventListener('keydown', e => {{
+document.addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   keysPressed[k] = true;
 
-  if(e.key === 'e' || e.key === 'E') {{
+  if(e.key === 'e' || e.key === 'E') {
     handleInteraction();
     return;
-  }}
+  }
 
-  if(isHidden && isQTEActive && ['w','a','s','d'].includes(k)) {{
+  if(isHidden && isQTEActive && ['w','a','s','d'].includes(k)) {
     handleHideInput(k.toUpperCase());
-  }}
-}});
+  }
+});
 
 document.addEventListener('keyup', e => keysPressed[e.key.toLowerCase()] = false);
 
-function isSolid(x, y) {{
+function isSolid(x, y) {
   const col = Math.floor(x / TILE_SIZE);
   const row = Math.floor(y / TILE_SIZE);
   if(row < 0 || row >= MAP_SIZE || col < 0 || col >= MAP_SIZE) return true;
   return mapData[row][col] === 1; 
-}}
+}
 
-function updatePlayer() {{
+function updatePlayer() {
   let speed = 3.2;
   let dx = 0, dy = 0;
   if(keysPressed['w'] || keysPressed['arrowup']) dy -= 1;
@@ -401,7 +417,7 @@ function updatePlayer() {{
   if(keysPressed['a'] || keysPressed['arrowleft']) dx -= 1;
   if(keysPressed['d'] || keysPressed['arrowright']) dx += 1;
 
-  if(dx !== 0 && dy !== 0) {{ dx *= 0.7071; dy *= 0.7071; }}
+  if(dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
 
   let nx = px + dx * speed;
   let ny = py + dy * speed;
@@ -413,38 +429,38 @@ function updatePlayer() {{
   const pRow = Math.floor(py / TILE_SIZE);
   const tileType = mapData[pRow][pCol];
 
-  if(tileType === 2) {{
+  if(tileType === 2) {
     document.getElementById('mission').textContent = '[E] 키를 눌러 캐비닛에 숨으세요!';
-  }} else if(tileType === 3) {{
+  } else if(tileType === 3) {
     document.getElementById('mission').textContent = '[E] 키를 눌러 열쇠를 줍으세요!';
-  }} else if(tileType === 4) {{
+  } else if(tileType === 4) {
     if(hasKey) document.getElementById('mission').textContent = '[E] 키를 눌러 출구로 탈출하세요!';
     else document.getElementById('mission').textContent = '출구입니다. 열쇠가 필요합니다!';
-  }} else if(!hasKey) {{
+  } else if(!hasKey) {
     document.getElementById('mission').textContent = '열쇠를 찾고 출구로 탈출하세요!';
-  }} else {{
+  } else {
     document.getElementById('mission').textContent = '열쇠를 획득했습니다! 출구(48,48)로 이동하세요!';
-  }}
-}}
+  }
+}
 
-function handleInteraction() {{
+function handleInteraction() {
   const pCol = Math.floor(px / TILE_SIZE);
   const pRow = Math.floor(py / TILE_SIZE);
   const tileType = mapData[pRow][pCol];
 
-  if(isHidden) {{
-    if(!isQTEActive) {{
+  if(isHidden) {
+    if(!isQTEActive) {
       exitCabinetSafe();
-    }}
+    }
     return;
-  }}
+  }
 
-  if(tileType === 2) {{
+  if(tileType === 2) {
     playLockerSound();
     
     let monsterDist = Math.hypot(px - mx, py - my);
     
-    if(isChased || monsterDist < 260) {{
+    if(isChased || monsterDist < 260) {
       isHidden = true;
       isQTEActive = true;
       
@@ -460,41 +476,41 @@ function handleInteraction() {{
       document.getElementById('reqCount').textContent = requiredPresses;
       document.getElementById('gaugeBar').style.width = '100%';
       nextHideKey();
-    }} 
-    else {{
+    } 
+    else {
       isHidden = true;
       isQTEActive = false;
       document.getElementById('hideUI').classList.remove('hidden');
       document.getElementById('qteBox').classList.add('hidden');
       document.getElementById('safeBox').classList.remove('hidden');
-    }}
-  }} 
-  else if(tileType === 3) {{
+    }
+  } 
+  else if(tileType === 3) {
     hasKey = true;
     mapData[pRow][pCol] = 0;
     renderMap();
     document.getElementById('keyCount').textContent = '1';
     document.getElementById('mission').textContent = '열쇠를 획득했습니다! 출구로 탈출하세요!';
-  }}
-  else if(tileType === 4) {{
+  }
+  else if(tileType === 4) {
     if(hasKey) win();
-  }}
-}}
+  }
+}
 
-function pickMonsterNewTarget() {{
+function pickMonsterNewTarget() {
   mTargetX = Math.floor(Math.random() * (MAP_SIZE - 4) + 2) * TILE_SIZE;
   mTargetY = Math.floor(Math.random() * (MAP_SIZE - 4) + 2) * TILE_SIZE;
-}}
+}
 
-function updateMonster() {{
-  if(isHidden && isQTEActive) {{
+function updateMonster() {
+  if(isHidden && isQTEActive) {
     document.getElementById('alert').style.display = 'block';
     return;
-  }}
+  }
 
   let dist = Math.hypot(px - mx, py - my);
   
-  if(dist < 260 && !isHidden && stealthTimer <= 0) {{
+  if(dist < 260 && !isHidden && stealthTimer <= 0) {
     isChased = true;
     document.getElementById('alert').style.display = 'block';
     
@@ -506,15 +522,15 @@ function updateMonster() {{
     if(!isSolid(mx, ny)) my = ny;
 
     if(dist < 28) lose("괴물에게 잡혔습니다!");
-  }} 
-  else {{
+  } 
+  else {
     isChased = false;
     document.getElementById('alert').style.display = 'none';
     
     let tDist = Math.hypot(mTargetX - mx, mTargetY - my);
-    if(tDist < 30) {{
+    if(tDist < 30) {
       pickMonsterNewTarget();
-    }} else {{
+    } else {
       let speed = 1.8;
       let angle = Math.atan2(mTargetY - my, mTargetX - mx);
       let nx = mx + Math.cos(angle) * speed;
@@ -523,18 +539,18 @@ function updateMonster() {{
       else pickMonsterNewTarget();
       if(!isSolid(mx, ny)) my = ny;
       else pickMonsterNewTarget();
-    }}
-  }}
-}}
+    }
+  }
+}
 
-function updateCamera() {{
+function updateCamera() {
   const container = document.getElementById('map-container');
   let camX = 500 - px;
   let camY = 325 - py;
-  container.style.transform = `translate(${{camX}}px, ${{camY}}px)`;
-}}
+  container.style.transform = `translate(${camX}px, ${camY}px)`;
+}
 
-function draw() {{
+function draw() {
   const p = document.getElementById('player');
   const m = document.getElementById('monster');
   p.style.left = px + 'px'; p.style.top = py + 'px';
@@ -544,43 +560,43 @@ function draw() {{
   document.getElementById('pShadow').style.top = (py + 16) + 'px';
   document.getElementById('mShadow').style.left = mx + 'px';
   document.getElementById('mShadow').style.top = (my + 16) + 'px';
-}}
+}
 
-function nextHideKey() {{
+function nextHideKey() {
   const keys = ['W', 'A', 'S', 'D'];
   targetKey = keys[Math.floor(Math.random() * 4)];
   document.getElementById('keyDisplay').textContent = targetKey;
-}}
+}
 
-function handleHideInput(k) {{
-  if(k === targetKey) {{
+function handleHideInput(k) {
+  if(k === targetKey) {
     requiredPresses--;
     document.getElementById('reqCount').textContent = requiredPresses;
-    if(requiredPresses <= 0) {{
+    if(requiredPresses <= 0) {
       exitCabinetQTESuccess();
       return;
-    }}
+    }
     nextHideKey();
-  }} else {{
+  } else {
     hp--;
     document.getElementById('hp').textContent = hp;
     if(hp <= 0) lose("캐비닛 안에서 소음을 내 잡히고 말았습니다!");
-  }}
-}}
+  }
+}
 
-function updateHideLogic(dt) {{
+function updateHideLogic(dt) {
   if(!isQTEActive) return;
   
   hideTimer -= dt;
   let percentage = Math.max(0, (hideTimer / MAX_HIDE_TIME) * 100);
   document.getElementById('gaugeBar').style.width = percentage + '%';
   
-  if(hideTimer <= 0) {{
+  if(hideTimer <= 0) {
     lose("시간 내에 숨소리를 조절하지 못해 괴물에게 캐비닛이 열렸습니다!");
-  }}
-}}
+  }
+}
 
-function exitCabinetQTESuccess() {{
+function exitCabinetQTESuccess() {
   isQTEActive = false;
   isChased = false;
   
@@ -592,48 +608,48 @@ function exitCabinetQTESuccess() {{
   document.getElementById('qteBox').classList.add('hidden');
   document.getElementById('safeBox').classList.remove('hidden');
   document.getElementById('mission').textContent = '괴물이 당신을 놓치고 떠났습니다! 원하는 때에 [E] 키를 눌러 나가세요.';
-}}
+}
 
-function exitCabinetSafe() {{
+function exitCabinetSafe() {
   playLockerSound();
   isHidden = false;
   document.getElementById('hideUI').classList.add('hidden');
-}}
+}
 
-function lose(reason) {{
+function lose(reason) {
   gameEnded = true;
   document.getElementById('world').classList.add('hidden');
   document.getElementById('hideUI').classList.add('hidden');
   document.getElementById('gameover').classList.remove('hidden');
   document.getElementById('overReason').textContent = reason;
-}}
+}
 
-function win() {{
+function win() {
   gameEnded = true;
   document.getElementById('world').classList.add('hidden');
   document.getElementById('winScreen').classList.remove('hidden');
-}}
+}
 
 let lastTime = performance.now();
-function gameLoop(now) {{
+function gameLoop(now) {
   if(gameEnded) return;
   let dt = (now - lastTime) / 1000;
   lastTime = now;
 
   if(stealthTimer > 0) stealthTimer -= dt;
 
-  if(!isHidden) {{
+  if(!isHidden) {
     updatePlayer();
-  }} else if(isQTEActive) {{
+  } else if(isQTEActive) {
     updateHideLogic(dt);
-  }}
+  }
 
   updateMonster();
   updateCamera();
   draw();
 
   requestAnimationFrame(gameLoop);
-}}
+}
 </script>
 </body>
 </html>
