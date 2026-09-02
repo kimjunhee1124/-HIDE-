@@ -1,730 +1,432 @@
-import random
-import time
+from pathlib import Path
+
+code = r'''
 import streamlit as st
+import streamlit.components.v1 as components
 
-st.set_page_config(
-    page_title="HIDE - 픽셀 생존 게임",
-    page_icon="👻",
-    layout="centered",
-)
+st.set_page_config(page_title="HIDE - Pixel School", page_icon="👻", layout="wide")
 
-MAP_W = 13
-MAP_H = 9
-
-MAP = [
-    "#############",
-    "#...........#",
-    "#..C........#",
-    "#...........#",
-    "#.....##....#",
-    "#........C..#",
-    "#...........#",
-    "#E..........#",
-    "#############",
-]
-
-FLOOR = {
-    (x, y)
-    for y, row in enumerate(MAP)
-    for x, tile in enumerate(row)
-    if tile != "#"
-}
-
-CABINETS = {
-    (x, y)
-    for y, row in enumerate(MAP)
-    for x, tile in enumerate(row)
-    if tile == "C"
-}
-
-EXIT = next(
-    ((x, y) for y, row in enumerate(MAP) for x, tile in enumerate(row) if tile == "E"),
-    None
-)
-
-st.markdown("""
+GAME_HTML = r"""
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
 <style>
-html, body, [data-testid="stAppViewContainer"] {
-    background: #11131a;
+*{box-sizing:border-box}
+body{
+  margin:0;background:#111;color:#fff;font-family:monospace;
+  overflow:hidden;
+}
+#wrap{display:flex;justify-content:center;align-items:center;min-height:760px}
+#game{
+  position:relative;width:1100px;height:700px;
+  background:#242831;border:4px solid #111;overflow:hidden;
+  image-rendering:pixelated;box-shadow:0 0 0 3px #59606b;
+}
+.screen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.hidden{display:none!important}
+#title{flex-direction:column;background:#15181d}
+.title{
+  font-size:64px;letter-spacing:8px;text-shadow:5px 5px #000;
+  margin-bottom:20px
+}
+.sub{color:#aeb7c4;margin-bottom:35px;font-size:18px}
+.selects{display:flex;gap:30px}
+.pick{
+  width:240px;height:270px;background:#252b34;border:4px solid #586170;
+  cursor:pointer;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:15px
+}
+.pick:hover{border-color:#fff;transform:translateY(-3px)}
+.pick b{font-size:22px}
+
+#hud{
+  position:absolute;z-index:20;left:15px;top:12px;right:15px;
+  display:flex;justify-content:space-between;pointer-events:none
+}
+.panel{
+  background:#111c;border:3px solid #69717d;padding:8px 12px;
+  box-shadow:3px 3px #000;font-size:15px
+}
+#hp{color:#ff4d55}
+#msg{
+  position:absolute;z-index:30;left:50%;top:50%;transform:translate(-50%,-50%);
+  background:#111;border:4px solid #fff;padding:25px 40px;text-align:center;
+  box-shadow:8px 8px #000;display:none
+}
+#msg h2{margin:0 0 12px;font-size:35px}
+#msg button,.bigbtn{
+  background:#303744;color:#fff;border:3px solid #aab2bd;padding:10px 18px;
+  font-family:monospace;font-weight:bold;cursor:pointer
+}
+#msg button:hover,.bigbtn:hover{background:#465061}
+
+#map{
+  position:absolute;inset:0;
+  background:
+   linear-gradient(#0002 1px,transparent 1px),
+   linear-gradient(90deg,#0002 1px,transparent 1px),
+   #6c7075;
+  background-size:50px 50px;
+}
+.wall{
+  position:absolute;background:#343941;border:4px solid #1a1d22;
+  box-shadow:inset 0 0 0 3px #505762
+}
+.cab{
+  position:absolute;width:48px;height:66px;background:#875b38;
+  border:4px solid #3b2518;box-shadow:inset 4px 0 #a8774d,inset -4px 0 #604126;
+}
+.cab:after{content:"";position:absolute;left:20px;top:28px;width:5px;height:5px;background:#1b130e}
+.exit{
+  position:absolute;width:58px;height:72px;background:#25333b;border:5px solid #111;
+  display:flex;align-items:center;justify-content:center;font-size:26px
+}
+.exit span{background:#2c9b56;padding:2px 5px}
+
+.sprite{
+  position:absolute;width:50px;height:66px;z-index:10;
+  transform:translate(-50%,-50%);
+  image-rendering:pixelated;
+}
+.sprite svg{width:50px;height:66px;shape-rendering:crispEdges}
+.shadow{
+  position:absolute;width:42px;height:14px;border-radius:50%;
+  background:#0006;transform:translate(-50%,-50%);z-index:5
+}
+#monster{z-index:12}
+#alert{
+ position:absolute;z-index:25;left:50%;top:88px;transform:translateX(-50%);
+ font-size:30px;background:#fff;color:#d11;border:3px solid #111;
+ padding:2px 10px;display:none;box-shadow:4px 4px #000
 }
 
-.block-container {
-    max-width: 900px;
-    padding-top: 1.2rem;
-    padding-bottom: 2rem;
+#hideUI{
+ position:absolute;z-index:40;inset:0;background:#090a0d;
+ display:flex;flex-direction:column;align-items:center;justify-content:center
 }
+#hideUI h2{font-size:35px;margin:0 0 8px}
+#hideUI p{color:#aeb7c4}
+#key{
+ width:130px;height:130px;border:6px solid #ddd;background:#30343b;
+ display:flex;align-items:center;justify-content:center;
+ font-size:70px;font-weight:bold;margin:20px
+}
+#timer{font-size:24px}
+#keyBtns{display:grid;grid-template-columns:60px 60px 60px;gap:5px}
+.k{height:55px;background:#353b45;border:3px solid #8c95a2;color:white;font:bold 22px monospace}
+.k:nth-child(1){grid-column:2}
+.k:nth-child(2){grid-column:1}.k:nth-child(3){grid-column:2}.k:nth-child(4){grid-column:3}
+.note{color:#8f98a6;margin-top:15px}
 
-.pixel-title {
-    font-family: monospace;
-    font-weight: 900;
-    font-size: 38px;
-    letter-spacing: 5px;
-    text-align: center;
-    color: #f5f5f5;
-    text-shadow: 4px 4px 0 #4b4f60;
-    margin-bottom: 0.1rem;
-}
-
-.subtitle {
-    text-align: center;
-    color: #aeb4c5;
-    font-family: monospace;
-    margin-bottom: 1.2rem;
-}
-
-.card {
-    background: #1b1e29;
-    border: 3px solid #343949;
-    border-radius: 10px;
-    padding: 18px;
-    box-shadow: 0 6px 0 #0a0b0f;
-}
-
-.map-wrap {
-    display: flex;
-    justify-content: center;
-    margin: 10px 0 16px 0;
-}
-
-.map {
-    display: grid;
-    grid-template-columns: repeat(13, 34px);
-    grid-template-rows: repeat(9, 34px);
-    gap: 2px;
-    background: #0b0d12;
-    padding: 6px;
-    border: 4px solid #303442;
-    image-rendering: pixelated;
-}
-
-.tile {
-    width: 34px;
-    height: 34px;
-    position: relative;
-    box-sizing: border-box;
-}
-
-.wall {
-    background: #3a3e4b;
-    border: 2px solid #555a6b;
-}
-
-.floor {
-    background: #747b67;
-    border: 1px solid #666d5b;
-}
-
-.exit {
-    background: #59657d;
-    border: 2px solid #91a3c7;
-}
-
-.cabinet {
-    background: #8c5b46;
-    border: 3px solid #5d392d;
-}
-
-.cabinet-icon {
-    text-align: center;
-    font-size: 22px;
-    line-height: 34px;
-}
-
-.player {
-    position: absolute;
-    width: 22px;
-    height: 25px;
-    left: 6px;
-    top: 5px;
-    border-radius: 4px;
-    border: 2px solid #20232b;
-    box-shadow: 2px 2px 0 #252833;
-}
-
-.player.male {
-    background: linear-gradient(#5aa5e8 0 42%, #26334f 42% 100%);
-}
-
-.player.female {
-    background: linear-gradient(#ef8eb2 0 42%, #4a3858 42% 100%);
-}
-
-.player::before {
-    content: "";
-    position: absolute;
-    width: 12px;
-    height: 9px;
-    left: 3px;
-    top: -7px;
-    background: #f2c7a5;
-    border: 2px solid #20232b;
-    border-radius: 3px;
-}
-
-.monster {
-    position: absolute;
-    width: 23px;
-    height: 24px;
-    left: 5px;
-    top: 5px;
-    background: #a65c9c;
-    border: 2px solid #34213a;
-    border-radius: 7px 7px 3px 3px;
-}
-
-.monster::before,
-.monster::after {
-    content: "";
-    position: absolute;
-    width: 4px;
-    height: 4px;
-    background: #f8eeee;
-    top: 5px;
-}
-
-.monster::before {
-    left: 4px;
-}
-
-.monster::after {
-    right: 4px;
-}
-
-.stat {
-    background: #12141b;
-    border: 2px solid #303544;
-    padding: 8px 10px;
-    border-radius: 6px;
-    font-family: monospace;
-    color: #dce1ee;
-    margin-bottom: 8px;
-}
-
-.big-key {
-    font-family: monospace;
-    font-size: 80px;
-    font-weight: 900;
-    text-align: center;
-    color: #ffffff;
-    text-shadow: 6px 6px 0 #555b70;
-    padding: 20px;
-    border: 5px solid #555b70;
-    background: #242836;
-    border-radius: 12px;
-    margin: 12px 0;
-}
-
-.warning {
-    text-align: center;
-    font-family: monospace;
-    font-weight: 900;
-    color: #ffb4b4;
-    font-size: 20px;
-}
-
-.gameover {
-    text-align: center;
-    font-family: monospace;
-    font-size: 42px;
-    font-weight: 900;
-    color: #ff8d8d;
-    text-shadow: 4px 4px 0 #4b2020;
-    padding: 20px;
-}
-
-.clear {
-    text-align: center;
-    font-family: monospace;
-    font-size: 38px;
-    font-weight: 900;
-    color: #ffe58a;
-    text-shadow: 4px 4px 0 #594a20;
-    padding: 20px;
-}
+#gameover{background:#090a0d;flex-direction:column}
+#gameover h1{font-size:60px;margin:0 0 10px}
 </style>
-""", unsafe_allow_html=True)
+</head>
+<body>
+<div id="wrap">
+<div id="game">
 
-
-def reset_game(gender="male"):
-    st.session_state.gender = gender
-    st.session_state.player = [1, 7]
-    st.session_state.monster = [11, 1]
-    st.session_state.mode = "explore"
-    st.session_state.hp = 3
-    st.session_state.noise = 0
-    st.session_state.target_key = random.choice("WASD")
-    st.session_state.hide_until = 0.0
-    st.session_state.hide_total = 10.0
-    st.session_state.hide_started = 0.0
-    st.session_state.message = (
-        "학교 안을 탐색해 보자. 캐비닛은 위험할 때 숨을 수 있는 장소다."
-    )
-
-
-if "mode" not in st.session_state:
-    st.session_state.mode = "start"
-
-
-# =============================
-# 시작 화면
-# =============================
-
-if st.session_state.mode == "start":
-
-    st.markdown(
-        '<div class="pixel-title">H I D E</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<div class="subtitle">PIXEL SURVIVAL ADVENTURE</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown("""
-    <div class="card">
-        <h3 style="text-align:center;">캐릭터를 선택하세요</h3>
-
-        <p style="text-align:center;color:#aeb4c5;">
-        학교를 탐험하다 괴물에게 쫓기면 캐비닛에 숨으세요.<br>
-        숨어 있는 동안 나타나는 W / A / S / D를 맞혀 살아남으세요!
-        </p>
+<div id="title" class="screen">
+  <div class="title">HIDE</div>
+  <div class="sub">학교 안에서 무언가가 너를 쫓아온다.</div>
+  <div class="selects">
+    <div class="pick" onclick="startGame('male')">
+      <div id="malePreview"></div><b>남학생</b>
     </div>
-    """, unsafe_allow_html=True)
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        st.markdown("""
-        <div class="card" style="text-align:center;">
-            <div style="font-size:64px;">🧑🏻‍🎓</div>
-            <h3>남학생</h3>
-            <p style="color:#9ebee8;">파란 교복</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        if st.button("남학생으로 시작", use_container_width=True):
-            reset_game("male")
-            st.rerun()
-
-    with col2:
-
-        st.markdown("""
-        <div class="card" style="text-align:center;">
-            <div style="font-size:64px;">👩🏻‍🎓</div>
-            <h3>여학생</h3>
-            <p style="color:#e8a4c0;">분홍빛 교복</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        if st.button("여학생으로 시작", use_container_width=True):
-            reset_game("female")
-            st.rerun()
-
-    st.stop()
-
-
-# =============================
-# GAME OVER
-# =============================
-
-if st.session_state.mode == "gameover":
-
-    st.markdown(
-        '<div class="gameover">GAME OVER</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<p style="text-align:center;color:#aeb4c5;font-family:monospace;">'
-        '괴물에게 발각되었습니다.</p>',
-        unsafe_allow_html=True
-    )
-
-    if st.button("다시 시작", use_container_width=True):
-        reset_game(st.session_state.gender)
-        st.rerun()
-
-    st.stop()
-
-
-# =============================
-# CLEAR
-# =============================
-
-if st.session_state.mode == "clear":
-
-    st.markdown(
-        '<div class="clear">ESCAPED!</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<p style="text-align:center;color:#aeb4c5;font-family:monospace;">'
-        '학교를 빠져나오는 데 성공했습니다!</p>',
-        unsafe_allow_html=True
-    )
-
-    if st.button("다시 플레이", use_container_width=True):
-        reset_game(st.session_state.gender)
-        st.rerun()
-
-    st.stop()
-
-
-# =============================
-# 이동
-# =============================
-
-def enter_hide():
-
-    st.session_state.mode = "hide"
-    st.session_state.hide_started = time.time()
-    st.session_state.hide_until = time.time() + 10.0
-    st.session_state.hide_total = 10.0
-    st.session_state.target_key = random.choice("WASD")
-    st.session_state.message = "숨었다! 들키지 않으려면 화면의 키를 빠르게 입력하자."
-
-
-def move_player(dx, dy):
-
-    x, y = st.session_state.player
-
-    nx = x + dx
-    ny = y + dy
-
-    if (nx, ny) not in FLOOR:
-        st.session_state.message = "벽이다."
-        return
-
-    st.session_state.player = [nx, ny]
-
-    st.session_state.noise = min(
-        100,
-        st.session_state.noise + 4
-    )
-
-    st.session_state.message = "발소리가 났다..."
-
-    mx, my = st.session_state.monster
-
-    if random.random() < 0.75:
-
-        options = []
-
-        if nx > mx and (mx + 1, my) in FLOOR:
-            options.append((mx + 1, my))
-
-        if nx < mx and (mx - 1, my) in FLOOR:
-            options.append((mx - 1, my))
-
-        if ny > my and (mx, my + 1) in FLOOR:
-            options.append((mx, my + 1))
-
-        if ny < my and (mx, my - 1) in FLOOR:
-            options.append((mx, my - 1))
-
-        if options:
-            st.session_state.monster = list(
-                random.choice(options)
-            )
-
-    if st.session_state.player == st.session_state.monster:
-        enter_hide()
-
-
-def hide_success():
-
-    st.session_state.mode = "explore"
-
-    st.session_state.monster = [11, 1]
-
-    st.session_state.player = [1, 7]
-
-    st.session_state.noise = max(
-        0,
-        st.session_state.noise - 30
-    )
-
-    st.session_state.message = (
-        "괴물이 지나갔다. 이제 조용히 출구를 찾아보자."
-    )
-
-
-# =============================
-# 탐험
-# =============================
-
-if st.session_state.mode == "explore":
-
-    st.markdown(
-        '<div class="pixel-title">H I D E</div>',
-        unsafe_allow_html=True
-    )
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.markdown(
-            f'<div class="stat">'
-            f'♥ HP: {"♥" * st.session_state.hp}'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-
-    with col2:
-        st.markdown(
-            f'<div class="stat">'
-            f'🔊 소음: {st.session_state.noise}%'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-
-    with col3:
-        st.markdown(
-            '<div class="stat">📍 학교 1층</div>',
-            unsafe_allow_html=True
-        )
-
-    px, py = st.session_state.player
-    mx, my = st.session_state.monster
-
-    cells = []
-
-    for y, row in enumerate(MAP):
-
-        for x, tile in enumerate(row):
-
-            if tile == "#":
-                cls = "wall"
-            else:
-                cls = "floor"
-
-            inner = ""
-
-            if tile == "E":
-
-                cls = "exit"
-
-                inner = (
-                    '<div style="text-align:center;'
-                    'line-height:34px;">🚪</div>'
-                )
-
-            if tile == "C":
-
-                cls = "cabinet"
-
-                inner = (
-                    '<div class="cabinet-icon">▣</div>'
-                )
-
-            if [x, y] == [mx, my]:
-
-                inner = '<div class="monster"></div>'
-
-            if [x, y] == [px, py]:
-
-                inner = (
-                    f'<div class="player '
-                    f'{st.session_state.gender}"></div>'
-                )
-
-            cells.append(
-                f'<div class="tile {cls}">{inner}</div>'
-            )
-
-    map_html = (
-        '<div class="map-wrap">'
-        '<div class="map">'
-        + "".join(cells)
-        + "</div></div>"
-    )
-
-    st.markdown(
-        map_html,
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        f'<div style="text-align:center;'
-        f'color:#c4cad8;font-family:monospace;">'
-        f'{st.session_state.message}'
-        f'</div>',
-        unsafe_allow_html=True
-    )
-
-    st.write("")
-
-    st.markdown(
-        '<div style="text-align:center;'
-        'font-family:monospace;">MOVE</div>',
-        unsafe_allow_html=True
-    )
-
-    a, b, c = st.columns(3)
-
-    with b:
-
-        if st.button("▲", use_container_width=True):
-            move_player(0, -1)
-            st.rerun()
-
-    a, b, c = st.columns(3)
-
-    with a:
-
-        if st.button("◀", use_container_width=True):
-            move_player(-1, 0)
-            st.rerun()
-
-    with b:
-
-        if st.button("▼", use_container_width=True):
-            move_player(0, 1)
-            st.rerun()
-
-    with c:
-
-        if st.button("▶", use_container_width=True):
-            move_player(1, 0)
-            st.rerun()
-
-    if tuple(st.session_state.player) in CABINETS:
-
-        st.write("")
-
-        if st.button(
-            "🗄️ 캐비닛에 숨기",
-            use_container_width=True
-        ):
-            enter_hide()
-            st.rerun()
-
-    if st.session_state.player == list(EXIT):
-
-        st.write("")
-
-        if st.button(
-            "🚪 출구로 나가기",
-            use_container_width=True
-        ):
-            st.session_state.mode = "clear"
-            st.rerun()
-
-    st.caption(
-        "팁: 괴물이 가까워지면 캐비닛으로 도망가세요."
-    )
-
-
-# =============================
-# 캐비닛 숨기 미니게임
-# =============================
-
-elif st.session_state.mode == "hide":
-
-    remaining = max(
-        0.0,
-        st.session_state.hide_until - time.time()
-    )
-
-    if remaining <= 0:
-
-        hide_success()
-        st.rerun()
-
-    st.markdown(
-        '<div class="pixel-title">H I D E</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<div class="warning">'
-        '쉿... 괴물이 캐비닛 앞에 있다.'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-    progress = (
-        remaining /
-        st.session_state.hide_total
-    )
-
-    st.progress(progress)
-
-    st.markdown(
-        f'<div style="text-align:center;'
-        f'color:#bfc5d5;font-family:monospace;">'
-        f'남은 시간: {remaining:.1f}초'
-        f'</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        f'<div class="big-key">'
-        f'{st.session_state.target_key}'
-        f'</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<p style="text-align:center;'
-        'color:#aeb4c5;font-family:monospace;">'
-        '화면의 키를 눌러 숨은 상태를 유지하세요!'
-        '</p>',
-        unsafe_allow_html=True
-    )
-
-    keys = st.columns(4)
-
-    for i, key in enumerate("WASD"):
-
-        with keys[i]:
-
-            if st.button(
-                key,
-                use_container_width=True,
-                key=f"hide_{key}_{st.session_state.target_key}"
-            ):
-
-                if key == st.session_state.target_key:
-
-                    st.session_state.target_key = random.choice(
-                        "WASD"
-                    )
-
-                    st.session_state.hide_until = min(
-                        st.session_state.hide_until + 0.15,
-                        st.session_state.hide_started + 10.0
-                    )
-
-                else:
-
-                    st.session_state.hp -= 1
-
-                    st.session_state.message = (
-                        "잘못된 버튼! 캐비닛이 흔들렸다."
-                    )
-
-                    st.session_state.target_key = random.choice(
-                        "WASD"
-                    )
-
-                    st.session_state.hide_until -= 1.2
-
-                    if st.session_state.hp <= 0:
-                        st.session_state.mode = "gameover"
-
-                st.rerun()
-
-    st.write("")
-
-    st.caption(
-        "실수하면 생존 시간이 크게 줄어듭니다. "
-        "0초까지 버티면 탈출 성공!"
-    )
-
-    time.sleep(0.08)
-
-    st.rerun()
+    <div class="pick" onclick="startGame('female')">
+      <div id="femalePreview"></div><b>여학생</b>
+    </div>
+  </div>
+  <div class="note">방향키 / WASD로 이동 · 캐비닛에 가까이 가서 E</div>
+</div>
+
+<div id="world" class="screen hidden">
+  <div id="map">
+    <div class="wall" style="left:0;top:0;width:1100px;height:55px"></div>
+    <div class="wall" style="left:0;bottom:0;width:1100px;height:55px"></div>
+    <div class="wall" style="left:0;top:0;width:55px;height:700px"></div>
+    <div class="wall" style="right:0;top:0;width:55px;height:700px"></div>
+    <div class="wall" style="left:250px;top:125px;width:430px;height:45px"></div>
+    <div class="wall" style="left:250px;top:125px;width:45px;height:220px"></div>
+    <div class="wall" style="left:680px;top:125px;width:45px;height:220px"></div>
+    <div class="wall" style="left:250px;top:300px;width:180px;height:45px"></div>
+    <div class="wall" style="left:545px;top:300px;width:180px;height:45px"></div>
+
+    <div class="cab" style="left:120px;top:160px"></div>
+    <div class="cab" style="left:860px;top:470px"></div>
+    <div class="cab" style="left:850px;top:170px"></div>
+    <div class="exit" style="left:965px;top:65px"><span>↗</span></div>
+
+    <div id="pShadow" class="shadow"></div>
+    <div id="mShadow" class="shadow"></div>
+    <div id="player" class="sprite"></div>
+    <div id="monster" class="sprite"></div>
+  </div>
+
+  <div id="hud">
+    <div class="panel">❤️ <span id="hp">3</span>　소음: <span id="noise">0</span>%</div>
+    <div class="panel">목표: <span id="objective">출구로 이동</span></div>
+  </div>
+  <div id="alert">!</div>
+</div>
+
+<div id="hideUI" class="hidden">
+  <h2>캐비닛 안에 숨었다!</h2>
+  <p>화면에 나타난 키를 빠르게 눌러 버텨!</p>
+  <div id="key">W</div>
+  <div id="timer">남은 시간 8.0초</div>
+  <div id="keyBtns">
+    <button class="k" onclick="pressKey('W')">W</button>
+    <button class="k" onclick="pressKey('A')">A</button>
+    <button class="k" onclick="pressKey('S')">S</button>
+    <button class="k" onclick="pressKey('D')">D</button>
+  </div>
+  <div class="note">키보드 W A S D도 사용할 수 있어.</div>
+</div>
+
+<div id="gameover" class="screen hidden">
+  <h1>GAME OVER</h1>
+  <p id="overText">잡혔다!</p>
+  <button class="bigbtn" onclick="location.reload()">다시 시작</button>
+</div>
+
+<div id="msg">
+  <h2 id="msgTitle"></h2><p id="msgText"></p>
+  <button onclick="location.reload()">다시 시작</button>
+</div>
+</div>
+</div>
+
+<script>
+// 실제 도트처럼 보이도록 SVG를 코드 안에서 직접 픽셀 블록으로 구성
+const male = `
+<svg viewBox="0 0 25 33" xmlns="http://www.w3.org/2000/svg">
+<rect x="7" y="2" width="11" height="9" fill="#26242b"/>
+<rect x="5" y="5" width="15" height="7" fill="#26242b"/>
+<rect x="8" y="7" width="3" height="3" fill="#f1c4a5"/>
+<rect x="14" y="7" width="3" height="3" fill="#f1c4a5"/>
+<rect x="6" y="11" width="13" height="8" fill="#f1c4a5"/>
+<rect x="7" y="11" width="11" height="2" fill="#302b31"/>
+<rect x="8" y="15" width="3" height="1" fill="#302b31"/>
+<rect x="14" y="15" width="3" height="1" fill="#302b31"/>
+<rect x="6" y="19" width="13" height="8" fill="#263c67"/>
+<rect x="9" y="19" width="7" height="3" fill="#f4f4ef"/>
+<rect x="11" y="22" width="3" height="3" fill="#d53e49"/>
+<rect x="7" y="27" width="5" height="5" fill="#17191f"/>
+<rect x="14" y="27" width="5" height="5" fill="#17191f"/>
+<rect x="5" y="31" width="8" height="2" fill="#4a3a35"/>
+<rect x="13" y="31" width="8" height="2" fill="#4a3a35"/>
+</svg>`;
+
+const female = `
+<svg viewBox="0 0 25 33" xmlns="http://www.w3.org/2000/svg">
+<rect x="5" y="2" width="15" height="11" fill="#4a2d32"/>
+<rect x="4" y="6" width="17" height="11" fill="#4a2d32"/>
+<rect x="8" y="7" width="3" height="3" fill="#f1c4a5"/>
+<rect x="14" y="7" width="3" height="3" fill="#f1c4a5"/>
+<rect x="6" y="11" width="13" height="8" fill="#f1c4a5"/>
+<rect x="7" y="11" width="11" height="2" fill="#4a2d32"/>
+<rect x="8" y="15" width="3" height="1" fill="#302b31"/>
+<rect x="14" y="15" width="3" height="1" fill="#302b31"/>
+<rect x="6" y="19" width="13" height="8" fill="#263c67"/>
+<rect x="9" y="19" width="7" height="3" fill="#f4f4ef"/>
+<rect x="11" y="22" width="3" height="3" fill="#d53e49"/>
+<rect x="7" y="27" width="5" height="5" fill="#20242d"/>
+<rect x="14" y="27" width="5" height="5" fill="#20242d"/>
+<rect x="5" y="31" width="8" height="2" fill="#4a3a35"/>
+<rect x="13" y="31" width="8" height="2" fill="#4a3a35"/>
+</svg>`;
+
+const monster = `
+<svg viewBox="0 0 25 33" xmlns="http://www.w3.org/2000/svg">
+<rect x="6" y="3" width="13" height="23" fill="#b9b5b5"/>
+<rect x="4" y="8" width="17" height="13" fill="#aaa6a6"/>
+<rect x="7" y="1" width="11" height="5" fill="#c9c5c5"/>
+<rect x="8" y="7" width="9" height="8" fill="#1b1b1e"/>
+<rect x="10" y="9" width="3" height="3" fill="#d51d2a"/>
+<rect x="15" y="9" width="3" height="3" fill="#d51d2a"/>
+<rect x="3" y="17" width="6" height="8" fill="#333338"/>
+<rect x="16" y="17" width="6" height="8" fill="#333338"/>
+<rect x="6" y="24" width="6" height="7" fill="#333338"/>
+<rect x="14" y="24" width="6" height="7" fill="#333338"/>
+<rect x="4" y="30" width="8" height="3" fill="#16171a"/>
+<rect x="14" y="30" width="8" height="3" fill="#16171a"/>
+</svg>`;
+
+document.getElementById('malePreview').innerHTML =
+  '<div class="sprite" style="position:relative;transform:none;margin:auto">'+male+'</div>';
+document.getElementById('femalePreview').innerHTML =
+  '<div class="sprite" style="position:relative;transform:none;margin:auto">'+female+'</div>';
+
+let playerType='male';
+let px=180, py=500, mx=760, my=210;
+let hp=3, noise=0, running=false, hidden=false, gameEnded=false;
+let target='W', hideLeft=8, last=performance.now();
+const speed=3.0;
+
+function startGame(type){
+  playerType=type;
+  document.getElementById('title').classList.add('hidden');
+  document.getElementById('world').classList.remove('hidden');
+  document.getElementById('player').innerHTML = type==='male' ? male : female;
+  document.getElementById('monster').innerHTML = monster;
+  requestAnimationFrame(loop);
+}
+
+const keys={};
+document.addEventListener('keydown',e=>{
+  keys[e.key.toLowerCase()]=true;
+  if(hidden && ['w','a','s','d'].includes(e.key.toLowerCase())){
+    pressKey(e.key.toUpperCase());
+  }
+  if(e.key.toLowerCase()==='e' && running && !hidden) tryHide();
+});
+document.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function dist(ax,ay,bx,by){return Math.hypot(ax-bx,ay-by)}
+
+function blocked(x,y){
+  if(x<80||x>1020||y<90||y>620) return true;
+  // inner wall collision
+  const rects=[
+    [250,125,680,170],[250,125,295,345],[680,125,725,345],
+    [250,300,430,345],[545,300,725,345]
+  ];
+  for(const r of rects){
+    if(x>r[0]-18&&x<r[2]+18&&y>r[1]-18&&y<r[3]+18) return true;
+  }
+  return false;
+}
+
+function updatePlayer(){
+  let dx=0,dy=0;
+  if(keys['w']||keys['arrowup'])dy-=1;
+  if(keys['s']||keys['arrowdown'])dy+=1;
+  if(keys['a']||keys['arrowleft'])dx-=1;
+  if(keys['d']||keys['arrowright'])dx+=1;
+  if(dx||dy){
+    const l=Math.hypot(dx,dy);dx/=l;dy/=l;
+    const nx=px+dx*speed, ny=py+dy*speed;
+    if(!blocked(nx,py))px=nx;
+    if(!blocked(px,ny))py=ny;
+    noise=clamp(noise+0.08,0,100);
+  }else{
+    noise=clamp(noise-0.04,0,100);
+  }
+}
+
+function updateMonster(dt){
+  const d=dist(px,py,mx,my);
+  if(d<330 && !hidden){
+    const dx=(px-mx)/Math.max(d,1), dy=(py-my)/Math.max(d,1);
+    const ms=1.15+noise/100*1.4;
+    const nx=mx+dx*ms, ny=my+dy*ms;
+    if(!blocked(nx,my))mx=nx;
+    if(!blocked(mx,ny))my=ny;
+    document.getElementById('alert').style.display='block';
+  }else{
+    document.getElementById('alert').style.display='none';
+  }
+  if(d<34 && !hidden) lose('괴물에게 잡혔어!');
+}
+
+function draw(){
+  const p=document.getElementById('player'),m=document.getElementById('monster');
+  p.style.left=px+'px';p.style.top=py+'px';
+  m.style.left=mx+'px';m.style.top=my+'px';
+  document.getElementById('pShadow').style.left=px+'px';
+  document.getElementById('pShadow').style.top=(py+24)+'px';
+  document.getElementById('mShadow').style.left=mx+'px';
+  document.getElementById('mShadow').style.top=(my+24)+'px';
+  document.getElementById('noise').textContent=Math.round(noise);
+  document.getElementById('hp').textContent=hp;
+}
+
+function tryHide(){
+  const cabs=[[144,193],[884,503],[874,203]];
+  let nearest=999;
+  for(const c of cabs)nearest=Math.min(nearest,dist(px,py,c[0],c[1]));
+  if(nearest<80) beginHide();
+}
+
+function beginHide(){
+  hidden=true;
+  document.getElementById('world').classList.add('hidden');
+  document.getElementById('hideUI').classList.remove('hidden');
+  hideLeft=8; newTarget();
+}
+
+function newTarget(){
+  target=['W','A','S','D'][Math.floor(Math.random()*4)];
+  document.getElementById('key').textContent=target;
+}
+
+function pressKey(k){
+  if(!hidden)return;
+  if(k===target){
+    hideLeft=Math.min(8,hideLeft+0.35);
+    newTarget();
+  }else{
+    hp--;
+    hideLeft-=0.8;
+    if(hp<=0 || hideLeft<=0) lose('버티지 못했어!');
+  }
+}
+
+function endHide(){
+  hidden=false;
+  document.getElementById('hideUI').classList.add('hidden');
+  document.getElementById('world').classList.remove('hidden');
+  // 괴물이 잠깐 다른 곳으로 이동
+  mx=760;my=210;
+  noise=0;
+}
+
+function lose(text){
+  if(gameEnded)return;
+  gameEnded=true;
+  document.getElementById('world').classList.add('hidden');
+  document.getElementById('hideUI').classList.add('hidden');
+  document.getElementById('gameover').classList.remove('hidden');
+  document.getElementById('overText').textContent=text;
+}
+
+function win(){
+  gameEnded=true;
+  document.getElementById('world').classList.add('hidden');
+  document.getElementById('msg').style.display='block';
+  document.getElementById('msgTitle').textContent='탈출 성공!';
+  document.getElementById('msgText').textContent='학교를 무사히 빠져나왔다.';
+}
+
+function loop(now){
+  if(gameEnded)return;
+  const dt=Math.min((now-last)/1000,0.05); last=now;
+
+  if(!hidden){
+    updatePlayer();
+    updateMonster(dt);
+    draw();
+
+    // 출구
+    if(px>930 && py<145) win();
+  }else{
+    hideLeft-=dt;
+    document.getElementById('timer').textContent='남은 시간 '+Math.max(0,hideLeft).toFixed(1)+'초';
+    if(hideLeft<=0) endHide();
+  }
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
+"""
+
+components.html(GAME_HTML, height=760, scrolling=False)
+'''
+
+path = Path("/mnt/data/main.py")
+path.write_text(code, encoding="utf-8")
+print(f"완성했습니다: {path}")
