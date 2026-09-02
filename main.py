@@ -187,7 +187,7 @@ body{
     <div id="tutorialNotice">
       <div class="notice-box">
         <h2>📢 [튜토리얼 스테이지]</h2>
-        <p style="color:#f1c40f; font-weight:bold;">괴물과의 조우를 체험하고 탈출하세요!</p>
+        <p style="color:#f1c40f; font-weight:bold;">본 게임에 진입하기 전, 기본 조작과 은신 방법을 익히세요!</p>
         <ul>
           <li><b>목표:</b> 랜덤 위치의 열쇠(🔑)를 찾으세요.</li>
           <li><b>은신 연습:</b> 괴물이 다가오면 캐비닛에 숨어 QTE 미션을 수행하세요.</li>
