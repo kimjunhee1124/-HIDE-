@@ -23,35 +23,39 @@ body{
 
 #map-container{
   position:absolute; top:0; left:0;
-  width:1000px; height:1000px;
-  background:#323741;
+  width:1800px; height:1800px;
+  background:#1e232a;
 }
 
 .tile{position:absolute; width:40px; height:40px; box-sizing:border-box; image-rendering:pixelated;}
-.wall{
-  background:#1a1d24; 
-  border:3px solid #0d0e12; 
-  box-shadow:inset 2px 2px 0 #2a2f3a, inset -2px -2px 0 #121419;
-}
+
+/* 학교 흰색 타일 바닥 디자인 */
 .floor{
-  background: #3a3f4b;
-  border-right:1px solid #303540;
-  border-bottom:1px solid #303540;
+  background: #eef2f5;
+  border-right: 1px solid #d5dbdb;
+  border-bottom: 1px solid #d5dbdb;
+}
+
+/* 두껍고 명확한 벽 구조 */
+.wall{
+  background:#2c3e50; 
+  border:2px solid #1a252f; 
+  box-shadow:inset 2px 2px 0 #34495e, inset -2px -2px 0 #111a24;
 }
 
 .cab{
-  background:#5a626e; 
-  border:3px solid #1e2229;
-  box-shadow:inset 3px 3px 0 #7c8594, inset -3px -3px 0 #3a4049;
+  background:#7f8c8d; 
+  border:3px solid #2c3e50;
+  box-shadow:inset 3px 3px 0 #bdc3c7, inset -3px -3px 0 #34495e;
   position:absolute;
 }
 .cab::before{
   content:""; position:absolute; left:6px; top:6px; right:6px; height:8px;
-  background:#3e444d; border-bottom:2px solid #6f7785;
+  background:#47535b; border-bottom:2px solid #95a5a6;
 }
 .cab::after{
   content:""; position:absolute; right:6px; top:20px; width:4px; height:6px;
-  background:#d0d7e1; box-shadow:0 1px 0 #111;
+  background:#ecf0f1; box-shadow:0 1px 0 #111;
 }
 
 .key-item{
@@ -59,14 +63,18 @@ body{
   display:flex; align-items:center; justify-content:center;
 }
 .key-icon{
-  width:20px; height:20px;
+  width:22px; height:22px;
   animation: bounce 0.8s infinite alternate;
 }
 @keyframes bounce { from { transform:translateY(-2px); } to { transform:translateY(3px); } }
 
 .door{
-  background:#27ae60; border:3px solid #1e8449; text-align:center; 
-  line-height:34px; font-weight:bold; color:#e8f8f5; font-size:10px;
+  background:#e67e22; border:3px solid #d35400; text-align:center; 
+  line-height:34px; font-weight:bold; color:#fff; font-size:10px;
+  box-shadow:inset 2px 2px 0 #f39c12;
+}
+.door.unlocked{
+  background:#27ae60; border-color:#1e8449;
   box-shadow:inset 2px 2px 0 #52be80;
 }
 
@@ -77,7 +85,7 @@ body{
 .sprite svg{width:32px; height:42px; shape-rendering:crispEdges;}
 .shadow{
   position:absolute; width:26px; height:8px; border-radius:50%;
-  background:rgba(0,0,0,0.5); transform:translate(-50%, -50%); z-index:5;
+  background:rgba(0,0,0,0.4); transform:translate(-50%, -50%); z-index:5;
 }
 
 .screen{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:50;}
@@ -107,17 +115,6 @@ body{
   font-size:20px; background:#c0392b; color:#fff; padding:4px 16px; font-weight:bold;
   display:none; border:2px solid #000; box-shadow:3px 3px 0 #000;
 }
-
-#tutorialNotice{
-  position:absolute; z-index:90; inset:0; background:rgba(0,0,0,0.8);
-  display:flex; align-items:center; justify-content:center;
-}
-.notice-box{
-  background:#161920; border:3px solid #3498db; padding:25px 35px; border-radius:8px;
-  max-width:550px; text-align:center; box-shadow:0 0 20px rgba(52,152,219,0.4);
-}
-.notice-box h2{color:#3498db; margin-top:0;}
-.notice-box ul{text-align:left; color:#dcdde1; line-height:1.6; margin:15px 0;}
 
 #hideUI{
   position:absolute; z-index:100; inset:0;
@@ -157,12 +154,12 @@ body{
 
   <div id="title" class="screen">
     <div class="title">👻 HIDE : PIXEL SCHOOL</div>
-    <div class="sub">괴물이 당신보다 미세하게 빠릅니다! 캐비닛을 활용하세요!</div>
+    <div class="sub">광활한 학교 미로를 탐험하고 3개의 열쇠를 찾아 탈출하세요!</div>
     
     <div class="controls-box">
       <div style="font-size:16px; font-weight:bold; margin-bottom:6px; color:#fff;">🎮 조작 안내</div>
       <div>이동: <b>W, A, S, D</b> 또는 <b>방향키</b></div>
-      <div>상호작용 (은신 / 열쇠 획득 / 이동): <b style="color:#f1c40f;">[ E ] Key</b></div>
+      <div>상호작용 (은신 / 열쇠 획득 / 탈출): <b style="color:#f1c40f;">[ E ] Key</b></div>
     </div>
 
     <div class="selects">
@@ -184,31 +181,18 @@ body{
       <div id="monster" class="sprite"></div>
     </div>
 
-    <div id="tutorialNotice">
-      <div class="notice-box">
-        <h2>📢 [튜토리얼 스테이지]</h2>
-        <p style="color:#f1c40f; font-weight:bold;">본 게임에 진입하기 전, 기본 조작과 은신 방법을 익히세요!</p>
-        <ul>
-          <li><b>목표:</b> 랜덤 위치의 열쇠(🔑)를 찾으세요.</li>
-          <li><b>은신 연습:</b> 괴물이 다가오면 캐비닛에 숨어 QTE 미션을 수행하세요.</li>
-          <li><b>입장:</b> 열쇠로 우측 하단의 START 문을 열어 본 게임으로 향하세요.</li>
-        </ul>
-        <button class="bigbtn" style="background:#2980b9; border-color:#3498db;" onclick="closeTutorial()">이해했습니다 (시작)</button>
-      </div>
-    </div>
-
     <div id="hud">
-      <div class="panel">❤️ HP: <span id="hp">3</span> | 🔑 열쇠: <span id="keyCount">0</span>/1</div>
-      <div class="panel">상태: <span id="mission" style="color:#f1c40f;">[튜토리얼] 열쇠를 찾으세요!</span></div>
-      <div class="panel" style="color:#aaa;">조작: WASD(이동) / E(상호작용)</div>
+      <div class="panel">❤️ HP: <span id="hp">3</span> | 🔑 열쇠: <span id="keyCount">0</span>/3</div>
+      <div class="panel">상태: <span id="mission" style="color:#f1c40f;">학교에 흩어진 열쇠 3개를 찾으세요!</span></div>
+      <div class="panel" style="color:#aaa;">WASD(이동) / E(상호작용)</div>
     </div>
     <div id="alert">! 경고: 괴물이 추격 중 !</div>
   </div>
 
   <div id="hideUI" class="hidden">
     <div id="qteBox" style="text-align:center;">
-      <h2 id="hideTitle" style="color:#e74c3c; margin:0 0 10px 0; text-shadow:2px 2px #000;">⚠️ 괴물이 바로 앞에 있습니다! 숨소리를 참으세요!</h2>
-      <p id="hideSub" style="color:#bdc3c7; margin:0; text-shadow:1px 1px #000;">게이지가 다 떨어지기 전에 알맞은 키를 누르세요!</p>
+      <h2 id="hideTitle" style="color:#e74c3c; margin:0 0 10px 0; text-shadow:2px 2px #000;">⚠️ 괴물이 지나가고 있습니다! 숨소리를 참으세요!</h2>
+      <p id="hideSub" style="color:#bdc3c7; margin:0; text-shadow:1px 1px #000;">게이지가 다 떨어지기 전에 표시되는 키를 누르세요!</p>
       
       <div id="gaugeContainer">
         <div id="gaugeBar"></div>
@@ -226,14 +210,14 @@ body{
 
   <div id="gameover" class="screen hidden">
     <h1 style="font-size:48px; color:#c0392b; text-shadow:3px 3px #000;">GAME OVER</h1>
-    <p id="overReason" style="color:#a6a6a6;">괴물에게 붙잡혔습니다...</p>
-    <button class="bigbtn" onclick="location.reload()">다시 시작</button>
+    <p id="overReason" style="color:#a6a6a6;">괴물에게 잡혔습니다...</p>
+    <button class="bigbtn" onclick="location.reload()">다시 도전</button>
   </div>
 
   <div id="winScreen" class="screen hidden">
-    <h1 style="font-size:40px; color:#27ae60; text-shadow:3px 3px #000;">🎓 튜토리얼 클리어!</h1>
-    <p style="color:#a6a6a6;">기본 생존 수칙을 모두 익혔습니다. 이제 본 게임으로 입장합니다...</p>
-    <button class="bigbtn" style="background:#27ae60; border-color:#2ecc71;" onclick="location.reload()">본 게임 시작하기</button>
+    <h1 style="font-size:40px; color:#27ae60; text-shadow:3px 3px #000;">🎉 학교 탈출 성공!</h1>
+    <p style="color:#a6a6a6;">어둠 속 괴물을 피해 무사히 학교를 탈출했습니다!</p>
+    <button class="bigbtn" style="background:#27ae60; border-color:#2ecc71;" onclick="location.reload()">처음으로 돌아가기</button>
   </div>
 
 </div>
@@ -270,7 +254,8 @@ function playLockerSound() {
 }
 
 const TILE_SIZE = 40;
-const MAP_SIZE = 25;
+const MAP_SIZE = 45; // 45x45 맵 확장
+const TOTAL_KEYS = 3;
 const MAX_HIDE_TIME = 6.0;
 
 const maleSVG = `
@@ -339,16 +324,19 @@ function generateMap() {
   mapData = [];
   let freeTiles = [];
 
+  // 미로 레이아웃 생성
   for(let r=0; r<MAP_SIZE; r++) {
     let row = [];
     for(let c=0; c<MAP_SIZE; c++) {
       if(r===0 || r===MAP_SIZE-1 || c===0 || c===MAP_SIZE-1) {
-        row.push(1);
-      } else if(r % 4 === 0 && c % 4 === 0 && Math.random() > 0.3) {
-        row.push(1);
+        row.push(1); // 외곽 벽
+      } else if(r % 2 === 0 && c % 2 === 0) {
+        row.push(1); // 미로 기둥
+      } else if(Math.random() < 0.28 && !(r < 4 && c < 4)) {
+        row.push(1); // 벽 무작위 생성
       } else {
-        row.push(0);
-        if(r > 4 && c > 4 && !(r === MAP_SIZE-2 && c === MAP_SIZE-2)) {
+        row.push(0); // 흰 타일 복도
+        if(r > 5 && c > 5 && !(r === MAP_SIZE-2 && c === MAP_SIZE-2)) {
           freeTiles.push({r, c});
         }
       }
@@ -356,26 +344,29 @@ function generateMap() {
     mapData.push(row);
   }
   
-  // 플레이어 스폰 주변 안전지대
+  // 플레이어 출발 지점 확보
   mapData[1][1] = 0; mapData[1][2] = 0;
   mapData[2][1] = 0; mapData[2][2] = 0;
 
-  // 괴물 전용 안전 출발 통로 (절대 벽이 들어설 수 없는 공간)
-  mapData[10][10] = 0; mapData[10][11] = 0; mapData[10][12] = 0;
-  mapData[11][10] = 0; mapData[11][11] = 0; mapData[11][12] = 0;
-  mapData[12][10] = 0; mapData[12][11] = 0; mapData[12][12] = 0;
+  // 캐비닛(2) 흩뿌려 배치
+  const cabinetPositions = [
+    {r: 3, c: 5}, {r: 8, c: 14}, {r: 15, c: 22}, {r: 25, c: 10},
+    {r: 30, c: 35}, {r: 38, c: 20}, {r: 12, c: 38}, {r: 40, c: 8}
+  ];
+  cabinetPositions.forEach(pos => {
+    if(pos.r < MAP_SIZE-1 && pos.c < MAP_SIZE-1) mapData[pos.r][pos.c] = 2;
+  });
 
-  mapData[3][3] = 2;
-  mapData[8][12] = 2;
-  mapData[12][8] = 2;
-  mapData[18][18] = 2;
-
-  if(freeTiles.length > 0) {
-    let randomIndex = Math.floor(Math.random() * freeTiles.length);
-    let keyPos = freeTiles[randomIndex];
-    mapData[keyPos.r][keyPos.c] = 3;
+  // 열쇠(3) 무작위 3개 배치
+  for(let i = 0; i < TOTAL_KEYS; i++) {
+    if(freeTiles.length > 0) {
+      let idx = Math.floor(Math.random() * freeTiles.length);
+      let kPos = freeTiles.splice(idx, 1)[0];
+      mapData[kPos.r][kPos.c] = 3;
+    }
   }
 
+  // 탈출문(4) 배치 (우하단)
   mapData[MAP_SIZE-2][MAP_SIZE-2] = 4;
 }
 generateMap();
@@ -392,21 +383,21 @@ function renderMap() {
       if(type === 1) tileClass = 'wall';
       else if(type === 2) tileClass = 'cab';
       else if(type === 3) { tileClass = 'key-item'; content = keySVG; }
-      else if(type === 4) { tileClass = 'door'; content = 'START'; }
+      else if(type === 4) { 
+        tileClass = keysCollected >= TOTAL_KEYS ? 'door unlocked' : 'door'; 
+        content = keysCollected >= TOTAL_KEYS ? 'EXIT' : 'LOCK'; 
+      }
 
       html += `<div class="tile ${tileClass}" style="left:${c*TILE_SIZE}px; top:${r*TILE_SIZE}px;">${content}</div>`;
     }
   }
   container.innerHTML = html;
 }
-renderMap();
 
-let px = 100, py = 100;
-// 괴물 시작 위치: 빈 공간이 확정된 (11, 11) 타일의 중심 좌표
-let mx = 11 * TILE_SIZE + 20, my = 11 * TILE_SIZE + 20;
-let hp = 3, hasKey = false;
+let px = 60, py = 60;
+let mx = 20 * TILE_SIZE + 20, my = 20 * TILE_SIZE + 20;
+let hp = 3, keysCollected = 0;
 let isHidden = false, isChased = false, isQTEActive = false, gameEnded = false;
-let isPaused = true;
 let keysPressed = {};
 
 let stealthTimer = 0;
@@ -414,7 +405,7 @@ let targetKey = 'W';
 let hideTimer = MAX_HIDE_TIME;
 let requiredPresses = 5;
 
-let mTargetX = 11 * TILE_SIZE + 20, mTargetY = 11 * TILE_SIZE + 20;
+let mTargetX = 20 * TILE_SIZE + 20, mTargetY = 20 * TILE_SIZE + 20;
 
 function startGame(type) {
   playLockerSound();
@@ -422,19 +413,12 @@ function startGame(type) {
   document.getElementById('world').classList.remove('hidden');
   document.getElementById('player').innerHTML = type === 'male' ? maleSVG : femaleSVG;
   document.getElementById('monster').innerHTML = monsterSVG;
+  renderMap();
   pickMonsterNewTarget();
   requestAnimationFrame(gameLoop);
 }
 
-function closeTutorial() {
-  playLockerSound();
-  document.getElementById('tutorialNotice').classList.add('hidden');
-  isPaused = false;
-}
-
 document.addEventListener('keydown', e => {
-  if(isPaused) return;
-
   const k = e.key.toLowerCase();
   keysPressed[k] = true;
 
@@ -450,7 +434,6 @@ document.addEventListener('keydown', e => {
 
 document.addEventListener('keyup', e => keysPressed[e.key.toLowerCase()] = false);
 
-// 사방 12px 범위를 검사하여 박스 충돌 판정
 function isSolid(x, y) {
   const r = 12;
   const points = [
@@ -492,14 +475,14 @@ function updatePlayer() {
   if(tileType === 2) {
     document.getElementById('mission').textContent = '[E] 키를 눌러 캐비닛에 숨으세요!';
   } else if(tileType === 3) {
-    document.getElementById('mission').textContent = '[E] 키를 눌러 열쇠를 줍으세요!';
+    document.getElementById('mission').textContent = '[E] 키를 눌러 열쇠를 주우세요!';
   } else if(tileType === 4) {
-    if(hasKey) document.getElementById('mission').textContent = '[E] 키를 눌러 본 게임 스타트 문으로 이동하세요!';
-    else document.getElementById('mission').textContent = '스타트 문입니다. 열쇠가 필요합니다!';
-  } else if(!hasKey) {
-    document.getElementById('mission').textContent = '[튜토리얼] 랜덤 위치의 열쇠를 찾으세요!';
+    if(keysCollected >= TOTAL_KEYS) document.getElementById('mission').textContent = '[E] 키를 눌러 탈출하세요!';
+    else document.getElementById('mission').textContent = `잠겨 있습니다! 열쇠가 ${TOTAL_KEYS - keysCollected}개 더 필요합니다.`;
+  } else if(keysCollected < TOTAL_KEYS) {
+    document.getElementById('mission').textContent = `열쇠를 찾으세요! (남은 열쇠: ${TOTAL_KEYS - keysCollected}개)`;
   } else {
-    document.getElementById('mission').textContent = '[튜토리얼 완료 가능] START 문(우측 하단)으로 이동하세요!';
+    document.getElementById('mission').textContent = '모든 열쇠를 찾았습니다! 탈출 문으로 이동하세요!';
   }
 }
 
@@ -509,21 +492,17 @@ function handleInteraction() {
   const tileType = mapData[pRow][pCol];
 
   if(isHidden) {
-    if(!isQTEActive) {
-      exitCabinetSafe();
-    }
+    if(!isQTEActive) exitCabinetSafe();
     return;
   }
 
   if(tileType === 2) {
     playLockerSound();
-    
     let monsterDist = Math.hypot(px - mx, py - my);
     
-    if(isChased || monsterDist < 260) {
+    if(isChased || monsterDist < 280) {
       isHidden = true;
       isQTEActive = true;
-      
       mx = px + 15;
       my = py + 20;
 
@@ -536,8 +515,7 @@ function handleInteraction() {
       document.getElementById('reqCount').textContent = requiredPresses;
       document.getElementById('gaugeBar').style.width = '100%';
       nextHideKey();
-    } 
-    else {
+    } else {
       isHidden = true;
       isQTEActive = false;
       document.getElementById('hideUI').classList.remove('hidden');
@@ -546,14 +524,16 @@ function handleInteraction() {
     }
   } 
   else if(tileType === 3) {
-    hasKey = true;
+    keysCollected++;
     mapData[pRow][pCol] = 0;
     renderMap();
-    document.getElementById('keyCount').textContent = '1';
-    document.getElementById('mission').textContent = '열쇠 획득! 스타트 문으로 이동하세요!';
+    document.getElementById('keyCount').textContent = keysCollected;
+    if(keysCollected >= TOTAL_KEYS) {
+      document.getElementById('mission').textContent = '모든 열쇠 획득! 탈출 문으로 가세요!';
+    }
   }
   else if(tileType === 4) {
-    if(hasKey) win();
+    if(keysCollected >= TOTAL_KEYS) win();
   }
 }
 
@@ -561,9 +541,7 @@ function pickMonsterNewTarget() {
   let validTiles = [];
   for(let r = 1; r < MAP_SIZE - 1; r++) {
     for(let c = 1; c < MAP_SIZE - 1; c++) {
-      if(mapData[r][c] === 0) {
-        validTiles.push({r, c});
-      }
+      if(mapData[r][c] === 0) validTiles.push({r, c});
     }
   }
 
@@ -582,28 +560,19 @@ function updateMonster() {
 
   let dist = Math.hypot(px - mx, py - my);
   
-  // 추격 상태
-  if(dist < 260 && !isHidden && stealthTimer <= 0) {
+  if(dist < 280 && !isHidden && stealthTimer <= 0) {
     isChased = true;
     document.getElementById('alert').style.display = 'block';
     
-    let speed = 2.9;
+    let speed = 2.95;
     let angle = Math.atan2(py - my, px - mx);
     let vx = Math.cos(angle) * speed;
     let vy = Math.sin(angle) * speed;
 
     let movedX = false, movedY = false;
+    if(!isSolid(mx + vx, my)) { mx += vx; movedX = true; }
+    if(!isSolid(mx, my + vy)) { my += vy; movedY = true; }
 
-    if(!isSolid(mx + vx, my)) {
-      mx += vx;
-      movedX = true;
-    }
-    if(!isSolid(mx, my + vy)) {
-      my += vy;
-      movedY = true;
-    }
-
-    // 완전히 막혔을 때 탈출(우회) 로직
     if(!movedX && !movedY) {
       if(!isSolid(mx + speed, my)) mx += speed;
       else if(!isSolid(mx - speed, my)) mx -= speed;
@@ -613,7 +582,6 @@ function updateMonster() {
 
     if(dist < 28) lose("괴물에게 붙잡혔습니다!");
   } 
-  // 배회(순찰) 상태
   else {
     isChased = false;
     document.getElementById('alert').style.display = 'none';
@@ -622,7 +590,7 @@ function updateMonster() {
     if(tDist < 25) {
       pickMonsterNewTarget();
     } else {
-      let speed = 1.8;
+      let speed = 1.9;
       let angle = Math.atan2(mTargetY - my, mTargetX - mx);
       let vx = Math.cos(angle) * speed;
       let vy = Math.sin(angle) * speed;
@@ -631,10 +599,7 @@ function updateMonster() {
       if(!isSolid(mx + vx, my)) { mx += vx; movedX = true; }
       if(!isSolid(mx, my + vy)) { my += vy; movedY = true; }
 
-      // 배회 도중 벽에 막히면 목표 지점을 새로 갱신
-      if(!movedX && !movedY) {
-        pickMonsterNewTarget();
-      }
+      if(!movedX && !movedY) pickMonsterNewTarget();
     }
   }
 }
@@ -676,7 +641,7 @@ function handleHideInput(k) {
   } else {
     hp--;
     document.getElementById('hp').textContent = hp;
-    if(hp <= 0) lose("캐비닛 안에서 소음을 내 잡히고 말았습니다!");
+    if(hp <= 0) lose("소음을 내 괴물에게 당했습니다!");
   }
 }
 
@@ -688,22 +653,20 @@ function updateHideLogic(dt) {
   document.getElementById('gaugeBar').style.width = percentage + '%';
   
   if(hideTimer <= 0) {
-    lose("시간 내에 숨소리를 조절하지 못해 괴물에게 캐비닛이 열렸습니다!");
+    lose("숨소리를 조절하지 못해 발각되었습니다!");
   }
 }
 
 function exitCabinetQTESuccess() {
   isQTEActive = false;
   isChased = false;
-  
   pickMonsterNewTarget();
-  mx = mTargetX; 
-  my = mTargetY;
+  mx = mTargetX; my = mTargetY;
   stealthTimer = 2.0;
 
   document.getElementById('qteBox').classList.add('hidden');
   document.getElementById('safeBox').classList.remove('hidden');
-  document.getElementById('mission').textContent = '괴물이 당신을 놓치고 떠났습니다! 원하는 때에 [E] 키를 눌러 나가세요.';
+  document.getElementById('mission').textContent = '괴물이 떠났습니다! [E] 키를 눌러 나가세요.';
 }
 
 function exitCabinetSafe() {
@@ -732,19 +695,17 @@ function gameLoop(now) {
   let dt = (now - lastTime) / 1000;
   lastTime = now;
 
-  if(!isPaused) {
-    if(stealthTimer > 0) stealthTimer -= dt;
+  if(stealthTimer > 0) stealthTimer -= dt;
 
-    if(!isHidden) {
-      updatePlayer();
-    } else if(isQTEActive) {
-      updateHideLogic(dt);
-    }
-
-    updateMonster();
-    updateCamera();
-    draw();
+  if(!isHidden) {
+    updatePlayer();
+  } else if(isQTEActive) {
+    updateHideLogic(dt);
   }
+
+  updateMonster();
+  updateCamera();
+  draw();
 
   requestAnimationFrame(gameLoop);
 }
