@@ -88,10 +88,14 @@ body{
 .hidden{display:none !important;}
 #title{flex-direction:column; background:#0b0c10;}
 .title{font-size:52px; letter-spacing:4px; text-shadow:4px 4px #8b0000; margin-bottom:10px; color:#f0f0f0;}
-.sub{color:#7a8391; margin-bottom:25px; font-size:15px;}
+.sub{color:#7a8391; margin-bottom:20px; font-size:15px;}
+.controls-box{
+  background:#161920; border:2px solid #3a4150; padding:15px 25px; border-radius:8px;
+  margin-bottom:20px; text-align:center; color:#2ecc71;
+}
 .selects{display:flex; gap:25px;}
 .pick{
-  width:180px; height:200px; background:#161920; border:3px solid #3a4150;
+  width:180px; height:180px; background:#161920; border:3px solid #3a4150;
   cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
   transition: transform 0.1s;
 }
@@ -99,7 +103,7 @@ body{
 
 #hud{
   position:absolute; z-index:40; left:15px; top:15px; right:15px;
-  display:flex; justify-content:space-between; pointer-events:none;
+  display:flex; justify-space-between; pointer-events:none; gap:10px;
 }
 .panel{background:rgba(10,12,16,0.85); border:2px solid #4a5260; padding:8px 14px; font-size:14px; border-radius:2px;}
 #alert{
@@ -108,7 +112,7 @@ body{
   display:none; border:2px solid #000; box-shadow:3px 3px 0 #000;
 }
 
-/* 캐비닛 내부 시야 (완전 검은색이 아닌 분위기 있는 시야) */
+/* 캐비닛 내부 시야 */
 #hideUI{
   position:absolute; z-index:100; inset:0;
   background: radial-gradient(circle, rgba(20, 25, 35, 0.85) 0%, rgba(5, 5, 8, 0.98) 100%);
@@ -144,6 +148,13 @@ body{
   <div id="title" class="screen">
     <div class="title">👻 HIDE : PIXEL SCHOOL</div>
     <div class="sub">괴물이 당신보다 빠릅니다! 캐비닛에 숨어 따돌리세요!</div>
+    
+    <div class="controls-box">
+      <div style="font-size:16px; font-weight:bold; margin-bottom:6px; color:#fff;">🎮 조작 안내</div>
+      <div>이동: <b>W, A, S, D</b> 또는 <b>방향키</b></div>
+      <div>상호작용 (은신 / 열쇠 획득 / 탈출): <b style="color:#f1c40f;">[ E ] Key</b></div>
+    </div>
+
     <div class="selects">
       <div class="pick" onclick="startGame('male')">
         <div id="mPrev"></div><b>남학생</b>
@@ -152,7 +163,6 @@ body{
         <div id="fPrev"></div><b>여학생</b>
       </div>
     </div>
-    <p style="color:#5a6270; margin-top:25px; font-size:13px;">이동: WASD / 방향키 | 철제 캐비닛 은신: E</p>
   </div>
 
   <!-- 게임 월드 -->
@@ -167,7 +177,8 @@ body{
 
     <div id="hud">
       <div class="panel">❤️ HP: <span id="hp">3</span> | 🔑 열쇠: <span id="keyCount">0</span>/1</div>
-      <div class="panel">목표: <span id="mission">열쇠를 찾고 출구로 탈출하세요!</span></div>
+      <div class="panel">상태: <span id="mission" style="color:#f1c40f;">열쇠를 찾고 출구로 탈출하세요!</span></div>
+      <div class="panel" style="color:#aaa;">조작: WASD(이동) / E(상호작용)</div>
     </div>
     <div id="alert">! 경고: 괴물이 빠른 속도로 추격 중 !</div>
   </div>
@@ -175,7 +186,7 @@ body{
   <!-- 숨기 UI -->
   <div id="hideUI" class="hidden">
     <h2 id="hideTitle" style="color:#e74c3c; margin:0 0 10px 0;">👀 괴물이 캐비닛 앞을 기웃거립니다!</h2>
-    <p id="hideSub" style="color:#bdc3c7; margin:0;">숨소리를 죽이세요! 지정된 키를 입력하여 버티세요!</p>
+    <p id="hideSub" style="color:#bdc3c7; margin:0;">숨소리를 죽이세요! 지정된 키를 빠르게 누르세요!</p>
     <div id="keyDisplay">W</div>
     <div style="font-size:16px; color:#aaa; margin-bottom:5px;">성공까지 남은 횟수: <b id="reqCount" style="color:#fff;">5</b>회</div>
     <div id="timer" style="font-size:22px; color:#e74c3c;">제한시간: 6.0s</div>
@@ -319,7 +330,6 @@ let hp = 3, hasKey = false;
 let isHidden = false, gameEnded = false;
 let keysPressed = {};
 
-// QTE 은신 미니게임 관련 상태 변수
 let targetKey = 'W';
 let hideTimer = 6.0;
 let requiredPresses = 5;
@@ -335,7 +345,7 @@ function startGame(type) {
 document.addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   keysPressed[k] = true;
-  if(e.key === 'e' || e.key === 'E') checkCabinet();
+  if(e.key === 'e' || e.key === 'E') handleInteraction();
   if(isHidden && ['w','a','s','d'].includes(k)) handleHideInput(k.toUpperCase());
 });
 document.addEventListener('keyup', e => keysPressed[e.key.toLowerCase()] = false);
@@ -348,7 +358,7 @@ function isSolid(x, y) {
 }
 
 function updatePlayer() {
-  let speed = 3.2; // 플레이어 이동 속도
+  let speed = 3.2;
   let dx = 0, dy = 0;
   if(keysPressed['w'] || keysPressed['arrowup']) dy -= 1;
   if(keysPressed['s'] || keysPressed['arrowdown']) dy += 1;
@@ -363,20 +373,61 @@ function updatePlayer() {
   if(!isSolid(nx, py)) px = nx;
   if(!isSolid(px, ny)) py = ny;
 
+  // 위치 기반 상호작용 안내 업데이트
   const pCol = Math.floor(px / TILE_SIZE);
   const pRow = Math.floor(py / TILE_SIZE);
+  const tileType = mapData[pRow][pCol];
 
-  if(mapData[pRow][pCol] === 3) {
+  if(tileType === 2) {
+    document.getElementById('mission').textContent = '[E] 키를 눌러 캐비닛에 숨으세요!';
+  } else if(tileType === 3) {
+    document.getElementById('mission').textContent = '[E] 키를 눌러 열쇠를 줍으세요!';
+  } else if(tileType === 4) {
+    if(hasKey) document.getElementById('mission').textContent = '[E] 키를 눌러 출구로 탈출하세요!';
+    else document.getElementById('mission').textContent = '출구입니다. 열쇠가 필요합니다!';
+  } else if(!hasKey) {
+    document.getElementById('mission').textContent = '열쇠를 찾고 출구로 탈출하세요!';
+  } else {
+    document.getElementById('mission').textContent = '열쇠를 획득했습니다! 출구(48,48)로 이동하세요!';
+  }
+}
+
+// 통합 상호작용 처리 (E 키 입력 시)
+function handleInteraction() {
+  if(isHidden) return;
+
+  const pCol = Math.floor(px / TILE_SIZE);
+  const pRow = Math.floor(py / TILE_SIZE);
+  const tileType = mapData[pRow][pCol];
+
+  // 1. 캐비닛 은신
+  if(tileType === 2) {
+    let monsterDist = Math.hypot(px - mx, py - my);
+    if(monsterDist > 250) {
+      mx = Math.max(100, mx - 400);
+      my = Math.max(100, my - 400);
+      document.getElementById('mission').textContent = '괴물이 당신을 놓치고 지나갔습니다.';
+      return;
+    }
+    isHidden = true;
+    document.getElementById('world').classList.add('hidden');
+    document.getElementById('hideUI').classList.remove('hidden');
+    hideTimer = 6.0;
+    requiredPresses = 5;
+    document.getElementById('reqCount').textContent = requiredPresses;
+    nextHideKey();
+  } 
+  // 2. 열쇠 줍기
+  else if(tileType === 3) {
     hasKey = true;
     mapData[pRow][pCol] = 0;
     renderMap();
     document.getElementById('keyCount').textContent = '1';
-    document.getElementById('mission').textContent = '열쇠를 얻었습니다! (48,48) 출구로 이동하세요!';
+    document.getElementById('mission').textContent = '열쇠를 획득했습니다! 출구로 탈출하세요!';
   }
-
-  if(mapData[pRow][pCol] === 4) {
+  // 3. 출구 탈출
+  else if(tileType === 4) {
     if(hasKey) win();
-    else document.getElementById('mission').textContent = '열쇠가 필요합니다!';
   }
 }
 
@@ -384,7 +435,7 @@ function updateMonster() {
   let dist = Math.hypot(px - mx, py - my);
   if(dist < 450 && !isHidden) {
     document.getElementById('alert').style.display = 'block';
-    let speed = 3.6; // 괴물 속도 (플레이어보다 빠름)
+    let speed = 3.6;
     let angle = Math.atan2(py - my, px - mx);
     let nx = mx + Math.cos(angle) * speed;
     let ny = my + Math.sin(angle) * speed;
@@ -416,33 +467,6 @@ function draw() {
   document.getElementById('mShadow').style.top = (my + 16) + 'px';
 }
 
-// 캐비닛 은신 판정
-function checkCabinet() {
-  const pCol = Math.floor(px / TILE_SIZE);
-  const pRow = Math.floor(py / TILE_SIZE);
-  if(mapData[pRow][pCol] === 2 && !isHidden) {
-    let monsterDist = Math.hypot(px - mx, py - my);
-    
-    // 먼 거리에서 숨었을 때: 괴물이 놓침
-    if(monsterDist > 250) {
-      mx = Math.max(100, mx - 400); // 괴물을 다른 곳으로 멀리 이동
-      my = Math.max(100, my - 400);
-      document.getElementById('mission').textContent = '괴물이 당신을 놓치고 지나갔습니다.';
-      return;
-    }
-
-    // 쫓기는 중에 숨었을 때: 미니게임 시작
-    isHidden = true;
-    document.getElementById('world').classList.add('hidden');
-    document.getElementById('hideUI').classList.remove('hidden');
-    
-    hideTimer = 6.0;
-    requiredPresses = 5;
-    document.getElementById('reqCount').textContent = requiredPresses;
-    nextHideKey();
-  }
-}
-
 function nextHideKey() {
   const keys = ['W', 'A', 'S', 'D'];
   targetKey = keys[Math.floor(Math.random() * 4)];
@@ -453,8 +477,6 @@ function handleHideInput(k) {
   if(k === targetKey) {
     requiredPresses--;
     document.getElementById('reqCount').textContent = requiredPresses;
-    
-    // 5번 모두 입력 성공 시 탈출
     if(requiredPresses <= 0) {
       exitCabinetSuccess();
       return;
@@ -470,7 +492,6 @@ function handleHideInput(k) {
 function updateHideLogic(dt) {
   hideTimer -= dt;
   document.getElementById('timer').textContent = '제한시간: ' + Math.max(0, hideTimer).toFixed(1) + 's';
-  
   if(hideTimer <= 0) {
     lose("버티지 못하고 괴물에게 캐비닛이 열렸습니다!");
   }
@@ -480,9 +501,9 @@ function exitCabinetSuccess() {
   isHidden = false;
   document.getElementById('hideUI').classList.add('hidden');
   document.getElementById('world').classList.remove('hidden');
-  mx = Math.max(100, mx - 500); // 괴물이 단념하고 멀어짐
+  mx = Math.max(100, mx - 500);
   my = Math.max(100, my - 500);
-  document.getElementById('mission').textContent = '괴물이 포기하고 떠났습니다! 안전할 때 이동하세요.';
+  document.getElementById('mission').textContent = '괴물이 포기하고 떠났습니다!';
 }
 
 function lose(reason) {
