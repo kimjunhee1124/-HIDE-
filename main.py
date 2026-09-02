@@ -1,18 +1,10 @@
-import base64
-import os
 import streamlit as st
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="HIDE - Pixel School EX", page_icon="👻", layout="wide")
 
-# 로컬 오디오 파일 읽기 및 Base64 변환
-AUDIO_FILENAME = "[Track 02] Metal Door sound effect.wav"
-audio_b64 = ""
-
-if os.path.exists(AUDIO_FILENAME):
-    with open(AUDIO_FILENAME, "rb") as f:
-        audio_bytes = f.read()
-        audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
+# 생성된 Catbox 링크 적용
+AUDIO_URL = "https://files.catbox.moe/rbqpjo.wav"
 
 GAME_HTML = f"""
 <!doctype html>
@@ -38,7 +30,6 @@ body{{
   background:#323741;
 }}
 
-/* 타일 디자인 */
 .tile{{position:absolute; width:40px; height:40px; box-sizing:border-box; image-rendering:pixelated;}}
 .wall{{
   background:#1a1d24; 
@@ -51,7 +42,6 @@ body{{
   border-bottom:1px solid #303540;
 }}
 
-/* 회색 철제 캐비닛 */
 .cab{{
   background:#5a626e; 
   border:3px solid #1e2229;
@@ -83,7 +73,6 @@ body{{
   box-shadow:inset 2px 2px 0 #ad3b3b;
 }}
 
-/* 엔티티 */
 .sprite{{
   position:absolute; width:32px; height:42px; z-index:10;
   transform:translate(-50%, -50%); image-rendering:pixelated;
@@ -94,7 +83,6 @@ body{{
   background:rgba(0,0,0,0.5); transform:translate(-50%, -50%); z-index:5;
 }}
 
-/* UI / HUD */
 .screen{{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:50;}}
 .hidden{{display:none !important;}}
 #title{{flex-direction:column; background:#0b0c10;}}
@@ -123,7 +111,6 @@ body{{
   display:none; border:2px solid #000; box-shadow:3px 3px 0 #000;
 }}
 
-/* 캐비닛 내부 시야 */
 #hideUI{{
   position:absolute; z-index:100; inset:0;
   background: radial-gradient(circle, rgba(10, 15, 20, 0.3) 30%, rgba(0, 0, 0, 0.95) 90%);
@@ -131,7 +118,6 @@ body{{
   display:flex; flex-direction:column; align-items:center; justify-content:center;
 }}
 
-/* 타이머 게이지 바 */
 #gaugeContainer{{
   width:260px; height:16px; background:#1a1a1a; border:2px solid #e74c3c;
   border-radius:8px; margin:10px auto 15px auto; overflow:hidden;
@@ -158,10 +144,11 @@ body{{
 </head>
 <body>
 
+<audio id="sfx-door" src="{AUDIO_URL}" preload="auto" crossorigin="anonymous"></audio>
+
 <div id="wrap">
 <div id="viewport">
 
-  <!-- 타이틀 화면 -->
   <div id="title" class="screen">
     <div class="title">👻 HIDE : PIXEL SCHOOL</div>
     <div class="sub">괴물이 당신보다 미세하게 빠릅니다! 캐비닛을 활용하세요!</div>
@@ -182,7 +169,6 @@ body{{
     </div>
   </div>
 
-  <!-- 게임 월드 -->
   <div id="world" class="screen hidden">
     <div id="map-container">
       <div id="tiles"></div>
@@ -200,7 +186,6 @@ body{{
     <div id="alert">! 경고: 괴물이 추격 중 !</div>
   </div>
 
-  <!-- 숨기 UI -->
   <div id="hideUI" class="hidden">
     <div id="qteBox" style="text-align:center;">
       <h2 id="hideTitle" style="color:#e74c3c; margin:0 0 10px 0; text-shadow:2px 2px #000;">⚠️ 괴물이 바로 앞에 있습니다! 숨소리를 참으세요!</h2>
@@ -220,7 +205,6 @@ body{{
     </div>
   </div>
 
-  <!-- 게임 오버 / 클리어 -->
   <div id="gameover" class="screen hidden">
     <h1 style="font-size:48px; color:#c0392b; text-shadow:3px 3px #000;">GAME OVER</h1>
     <p id="overReason" style="color:#a6a6a6;">괴물에게 붙잡혔습니다...</p>
@@ -237,18 +221,11 @@ body{{
 </div>
 
 <script>
-// --- 업로드된 WAV 오디오 재생 시스템 ---
-const audioB64 = "{audio_b64}";
-let lockerAudio = null;
-
-if (audioB64) {{
-  lockerAudio = new Audio("data:audio/wav;base64," + audioB64);
-}}
-
 function playLockerSound() {{
-  if (lockerAudio) {{
-    lockerAudio.currentTime = 0;
-    lockerAudio.play().catch(e => console.log("Audio play blocked:", e));
+  const audio = document.getElementById('sfx-door');
+  if (audio) {{
+    audio.currentTime = 0;
+    audio.play().catch(err => console.log('Audio playback blocked:', err));
   }}
 }}
 
@@ -334,7 +311,6 @@ function generateMap() {{
   }}
   
   mapData[2][2] = 0;
-  
   mapData[4][4] = 2;
   mapData[12][8] = 2;
   mapData[22][18] = 2;
@@ -382,6 +358,7 @@ let requiredPresses = 5;
 let mTargetX = 800, mTargetY = 800;
 
 function startGame(type) {{
+  playLockerSound();
   document.getElementById('title').classList.add('hidden');
   document.getElementById('world').classList.remove('hidden');
   document.getElementById('player').innerHTML = type === 'male' ? maleSVG : femaleSVG;
